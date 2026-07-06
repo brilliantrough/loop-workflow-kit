@@ -8,10 +8,13 @@ This kit treats a loop workflow as a graph of bounded execution nodes.
 - Keep pass/fail decisions outside agent self-reporting.
 - Move context through artifacts and prompt assembly rather than hidden chat history.
 - Keep domain-specific checkers replaceable.
+- Give every workflow prototype a concrete startup command through a placeholder runner.
 
 ## Workflow Graph
 
 Each workflow has an `entry` node and a `nodes` map. Nodes route through `next`, `pass`, and `fail`. Agent nodes may declare a stable `session`; feedback nodes use that session to continue the same agent instead of starting a new one.
+
+Every generated workflow should also include a runner surface. In prototype repositories, this can be a placeholder runner that reads the graph, seeds a run directory, logs agent-session wakeups, executes fake command/gate nodes, and exposes a concrete command such as `bun run prototype:<workflow-name>`. The placeholder runner is part of prototype completeness because it proves how the graph is started and where production agent orchestration must be inserted.
 
 ```yaml
 name: operator-dsl-loop
@@ -115,12 +118,13 @@ For this prototype, review is an agent decision parsed by the runner. If the rev
 This kit stops at workflow contracts. A prototype-complete workflow in this repository should include:
 
 - a graph with explicit retry and review routing
+- a placeholder runner with a documented startup command
 - prompt templates that state stage roles and required outputs
 - sample handoff and review artifacts that show the runner contracts
 - machine-readable gate outputs, even when the checker itself is fake
 - rule artifacts that future runners can inject into prompts
 
-It should not include a real workflow runner, production build wiring, benchmark harnesses, or deployment-specific shell logic.
+It should not include a real production workflow runner, production build wiring, benchmark harnesses, or deployment-specific shell logic.
 
 Those belong in the target production repository. That repository must own:
 

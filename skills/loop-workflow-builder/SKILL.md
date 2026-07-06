@@ -47,6 +47,7 @@ Every workflow should define four surfaces:
 | Handoff | Moves context between stages | `handoff-manifest.json` |
 | Gates | Decide pass/fail outside the agent | checker scripts and result JSON |
 | Review | Converts rule failures into feedback | `review-result.json` |
+| Runner | Starts the prototype and shows production insertion points | placeholder runner and startup command |
 
 ## Node Types
 
@@ -117,6 +118,9 @@ The runner, not the previous agent, should choose which artifacts to inject and 
 
 ## Graph Design Rules
 
+- When generating a workflow prototype, generate a matching placeholder runner and a concrete startup command. A workflow without a startup surface is not prototype-complete.
+- The placeholder runner may be minimal: read the graph, seed a run directory, log agent wakeups, execute fake command/gate nodes, and stop at documented production insertion points.
+- Do not present the placeholder runner as production orchestration. Production repositories must replace or extend it with real agent-session control, persistence, replay, and environment wiring.
 - Put correctness and performance decisions in `gate` or `command` nodes, not in agent self-reporting.
 - Treat judgment nodes as configurable by workflow philosophy: use bash/command gates for hard checks by default, and use agent judgment only when the user explicitly wants qualitative review or rubric-based assessment.
 - In prototype workflows, bash/command gates may be fake placeholders when the real validator belongs in a production repository. The fake gate must still preserve the intended CLI shape, artifact names, pass/fail routing, and machine-readable result schema.
@@ -144,6 +148,8 @@ The packaged `workflows/operator-dsl-loop/` example is meant to be prototype-com
 
 | Mistake | Fix |
 |---|---|
+| Workflow prototype has no startup command | Add a placeholder runner such as `bun run prototype:<name>` |
+| Placeholder runner is treated as production orchestration | Mark it as prototype-only and document production insertion points |
 | Agent decides whether correctness passed | Put correctness in a `gate` command |
 | Prototype gate is omitted because real checker is not ready | Add a fake bash/command placeholder with the final CLI and artifact contract |
 | Fake gate is treated as production validation | Mark it as fake and replace it during production adaptation |

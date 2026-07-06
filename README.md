@@ -49,6 +49,16 @@ docs/
 5. Use `workflows/operator-dsl-loop/` as a prototype-complete example of a PyTorch-reference-to-DSL-operator workflow skeleton.
 6. Load `skills/workflow-production-adapter/SKILL.md` when moving the prototype into a real runtime repository.
 
+## Placeholder Runner
+
+This kit includes a local placeholder runner so the packaged workflow has a concrete startup command:
+
+```bash
+bun run prototype:operator
+```
+
+The placeholder runner reads `workflows/operator-dsl-loop/workflow.yml`, seeds `.runs/operator-dsl-loop`, logs where production agent sessions must start or resume, and executes the fake command/gate scripts. It is not a production runner.
+
 This repository is intentionally lightweight. The TypeScript files here are templates to copy into a target runtime repository; this repository itself is not meant to be the workflow runner implementation.
 
 ## Core Pattern
@@ -69,6 +79,7 @@ The kit assumes a hybrid loop model:
 Prototype-complete in this repo means every framework contract is named and exemplified:
 
 - graph routing and retry budgets
+- placeholder runner startup command
 - stage prompt roles and output expectations
 - handoff and review artifact shapes
 - stage-to-stage handoff text as runtime state, not prompt generation
