@@ -1,0 +1,8 @@
+{
+  "name": "loop-workflow-kit",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "prototype:operator": "bun run scripts/prototype-operator-runner.ts --workflow workflows/operator-dsl-loop/workflow.yml --run-dir .runs/operator-dsl-loop"
+  }
+}
