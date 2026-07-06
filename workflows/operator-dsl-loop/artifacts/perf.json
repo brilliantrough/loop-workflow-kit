@@ -1,0 +1,15 @@
+{
+  "baselineMs": 10.5,
+  "candidateMs": 7.4,
+  "checkedArtifacts": [
+    "generated/operator.dsl",
+    "artifacts/codegen-report.md"
+  ],
+  "speedup": 1.42,
+  "gateId": "perf",
+  "ok": true,
+  "reason": "prototype performance gate met the target",
+  "route": "pass",
+  "targetMet": true,
+  "bottleneck": "prototype memory-bound normalization loop"
+}

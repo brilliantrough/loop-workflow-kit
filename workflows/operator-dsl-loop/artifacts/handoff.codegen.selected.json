@@ -1,0 +1,22 @@
+[
+  {
+    "label": "Run Input",
+    "path": "artifacts/input.json"
+  },
+  {
+    "label": "Previous Stage Output",
+    "path": "artifacts/plan-output.md"
+  },
+  {
+    "label": "Plan Summary",
+    "path": "artifacts/plan-summary.json"
+  },
+  {
+    "label": "Stage Handoff",
+    "path": "artifacts/handoff.codegen.md"
+  },
+  {
+    "label": "Rules",
+    "path": "rules/operator-rules.md"
+  }
+]

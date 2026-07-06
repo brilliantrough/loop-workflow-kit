@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "checkedArtifacts": [
+    "generated/operator.dsl",
+    "artifacts/codegen-report.md"
+  ],
+  "gateId": "correctness",
+  "ok": true,
+  "reason": "prototype correctness gate passed after one repair",
+  "route": "pass"
+}

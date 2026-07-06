@@ -1,0 +1,10 @@
+{
+  "operator": "layer_norm",
+  "edgeCases": [
+    "singleton normalization axis",
+    "broadcasted scale and bias",
+    "epsilon stability"
+  ],
+  "correctnessStrategy": "compare against PyTorch reference on curated tensors",
+  "optimizationFocus": "fuse normalization passes and avoid redundant buffer writes"
+}

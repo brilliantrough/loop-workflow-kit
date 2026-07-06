@@ -1,0 +1,8 @@
+{
+  "goal": "Implement a layer_norm DSL operator from a PyTorch reference",
+  "referencePath": "reference/layer_norm.py",
+  "targetArtifact": "generated/operator.dsl",
+  "performanceTarget": {
+    "minSpeedupVsReference": 1.15
+  }
+}

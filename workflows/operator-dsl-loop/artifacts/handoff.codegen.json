@@ -1,0 +1,82 @@
+{
+  "version": 2,
+  "run": {
+    "runId": "operator-dsl-loop-0001",
+    "workflowName": "operator-dsl-loop",
+    "workflowVersion": "2026-07-07",
+    "inputArtifact": "artifacts/input.json"
+  },
+  "sourceStage": {
+    "id": "plan",
+    "attempt": 1,
+    "status": "completed",
+    "outputArtifact": "artifacts/plan-output.md",
+    "summaryArtifact": "artifacts/plan-summary.json"
+  },
+  "targetStage": {
+    "id": "codegen",
+    "role": "Generate implementation from plan artifacts",
+    "promptTemplate": "prompts/operator-codegen.md",
+    "requiredOutputs": [
+      "generated/operator.dsl",
+      "artifacts/codegen-report.md"
+    ],
+    "stopCondition": "Do not report completion unless every required output exists."
+  },
+  "injection": {
+    "sections": [
+      {
+        "label": "Run Input",
+        "artifact": "artifacts/input.json",
+        "required": true
+      },
+      {
+        "label": "Fixed Stage System Prompt",
+        "promptTemplate": true,
+        "required": true
+      },
+      {
+        "label": "Previous Stage Output",
+        "artifact": "artifacts/plan-output.md",
+        "required": true
+      },
+      {
+        "label": "Plan Summary",
+        "artifact": "artifacts/plan-summary.json",
+        "required": false
+      },
+      {
+        "label": "Stage Handoff",
+        "artifact": "artifacts/handoff.codegen.md",
+        "required": true
+      },
+      {
+        "label": "Rules",
+        "artifact": "rules/operator-rules.md",
+        "required": false
+      }
+    ],
+    "renderOrder": [
+      "Run Input",
+      "Fixed Stage System Prompt",
+      "Previous Stage Output",
+      "Plan Summary",
+      "Stage Handoff",
+      "Rules"
+    ]
+  },
+  "persistence": {
+    "mustWrite": [
+      "prompt",
+      "stdout",
+      "stderr",
+      "result",
+      "selectedArtifacts"
+    ],
+    "selectedArtifactsRecord": "artifacts/handoff.codegen.selected.json"
+  },
+  "routing": {
+    "onSuccess": "correctness",
+    "onFailure": "plan"
+  }
+}
