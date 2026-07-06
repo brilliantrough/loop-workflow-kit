@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "runInput": {
+    "goal": "Short user request",
+    "referencePath": "path/to/reference",
+    "constraintsPath": "rules/domain-rules.md"
+  },
+  "artifacts": {
+    "plan": "artifacts/plan.json",
+    "codegenReport": "artifacts/codegen-report.md",
+    "correctness": "artifacts/correctness.json",
+    "performance": "artifacts/perf.json",
+    "review": "artifacts/review.json"
+  },
+  "stagePolicy": {
+    "mustInject": ["runInput", "previousOutput", "selectedArtifacts"],
+    "mustPersist": ["prompt", "stdout", "stderr", "result"]
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "runInput": {
+    "goal": "Describe the target outcome",
+    "referencePath": "path/to/reference/file.py",
+    "rulesPath": "rules/workflow-rules.md"
+  },
+  "stage": {
+    "id": "codegen",
+    "role": "Generate implementation from plan artifacts",
+    "requiredInputs": [
+      "artifacts/plan.json",
+      "artifacts/handoff.codegen.md"
+    ],
+    "requiredOutputs": [
+      "generated/operator.dsl",
+      "artifacts/codegen-report.md"
+    ]
+  },
+  "routing": {
+    "onSuccess": "correctness",
+    "onFailure": "plan"
+  }
+}

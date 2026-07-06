@@ -1,0 +1,9 @@
+{
+  "approved": false,
+  "sendTo": "plan",
+  "reason": "Review found a workflow-level issue",
+  "requiredPlanChanges": [
+    "Add the missing constraint to the plan artifact",
+    "Regenerate downstream implementation from the revised plan"
+  ]
+}

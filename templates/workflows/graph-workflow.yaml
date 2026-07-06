@@ -1,0 +1,30 @@
+name: reusable-graph-loop
+entry: plan
+nodes:
+  plan:
+    kind: agent
+    engine: opencode
+    prompt: prompts/plan.md
+    next: execute
+  execute:
+    kind: agent
+    engine: codex
+    sandbox: workspace-write
+    prompt: prompts/execute.md
+    next: verify
+  verify:
+    kind: gate
+    command: ["bun", "run", "checks/verify.ts", "--run-dir", "{{runDirectory}}"]
+    pass: review
+    fail: repair
+  repair:
+    kind: agent
+    engine: codex
+    sandbox: workspace-write
+    prompt: prompts/repair.md
+    next: verify
+    max_attempts: 3
+  review:
+    kind: agent
+    engine: opencode
+    prompt: prompts/review.md
