@@ -46,6 +46,16 @@ Prototype-complete here means a production repository should be able to keep the
 - `reference/`: sample PyTorch reference implementation consumed by the prototype input
 - `rules/`: sample rule artifacts for planning and review
 
+## Prototype Startup
+
+From the repository root, run:
+
+```bash
+bun run prototype:operator
+```
+
+This command uses the placeholder runner. It logs agent session boundaries, executes fake correctness/perf/finalize commands, and writes runtime output under `.runs/operator-dsl-loop`. Production environments should replace the placeholder runner with real agent session orchestration.
+
 ## Production Replacement Surfaces
 
 Downstream repositories should preserve the graph and artifact contracts, but replace these adapters:

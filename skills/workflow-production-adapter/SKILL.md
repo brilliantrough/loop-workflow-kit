@@ -29,10 +29,12 @@ Keep these stable unless the runner contract itself is changing:
 - gate result shape
 - review result shape
 - stage output expectations
+- placeholder runner startup behavior used to prove the prototype flow
 
 Replace these inside the production repository:
 
 - fake `checks/*.ts` commands
+- the placeholder runner started by `bun run prototype:operator`
 - sample `artifacts/*.json` input and evidence files
 - sample `rules/*.md` policy files
 - placeholder paths, `cwd`, and sandbox choices
@@ -103,6 +105,8 @@ Before enabling full-loop runs, add commands that can:
 
 Without replay, failed loops will be slow to diagnose.
 
+The prototype runner is a starting point for this work. It proves the startup command and graph traversal shape, but production must add real agent-session orchestration, replay controls, durable persistence, and environment-specific execution.
+
 ### 6. Preserve persistent sessions
 
 Production runners should keep one session per long-lived agent role, such as `plan`, `codegen`, `optimize`, and `review`.
@@ -141,6 +145,7 @@ At the end of adaptation, the production repository should have:
 | Mistake | Fix |
 |---|---|
 | Rewriting the graph while replacing fake commands | Keep the graph stable; swap adapters first |
+| Discarding the placeholder runner contract | Preserve the startup behavior while replacing the implementation |
 | Removing fake gates instead of replacing them | Keep the node and replace the command implementation |
 | Changing result JSON while replacing fake gates | Preserve the prototype result schema unless the contract intentionally changes |
 | Splitting one persistent worker into repair agents after gate failure | Resume the same session through a feedback node |
