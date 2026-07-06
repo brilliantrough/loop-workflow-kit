@@ -12,7 +12,21 @@ const nextAttempt = await readAttempt(markerPath)
 
 await writeFile(
   join(args.runDirectory, "artifacts", "correctness.json"),
-  JSON.stringify({ attempt: nextAttempt, ok: nextAttempt > 1 }, null, 2),
+  JSON.stringify(
+    {
+      attempt: nextAttempt,
+      checkedArtifacts: ["generated/operator.dsl", "artifacts/codegen-report.md"],
+      gateId: "correctness",
+      ok: nextAttempt > 1,
+      reason:
+        nextAttempt > 1
+          ? "prototype correctness gate passed after one repair"
+          : "prototype correctness gate failed on the first attempt",
+      route: nextAttempt > 1 ? "pass" : "fail",
+    },
+    null,
+    2,
+  ),
 )
 await writeFile(markerPath, String(nextAttempt))
 

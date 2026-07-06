@@ -12,7 +12,13 @@ await writeFile(
   JSON.stringify(
     {
       baselineMs: 10.5,
+      candidateMs: 7.4,
       bottleneck: "mock memory bound loop",
+      checkedArtifacts: ["generated/operator.dsl", "artifacts/codegen-report.md"],
+      gateId: "perf",
+      ok: true,
+      reason: "prototype performance gate met the target",
+      route: "pass",
       speedup: 1.42,
       targetMet: true,
     },
