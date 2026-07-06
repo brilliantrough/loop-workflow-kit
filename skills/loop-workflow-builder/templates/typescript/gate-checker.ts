@@ -2,8 +2,11 @@ import { mkdir, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 
 type GateResult = {
+  readonly checkedArtifacts: readonly string[]
+  readonly gateId: string
   readonly ok: boolean
   readonly reason: string
+  readonly route: string
 }
 
 type CliArgs = {
@@ -24,8 +27,11 @@ console.log(result.reason)
 
 async function runGate(runDirectory: string): Promise<GateResult> {
   return {
+    checkedArtifacts: ["artifacts/input.json"],
+    gateId: "replace-with-gate-id",
     ok: true,
     reason: `gate passed for ${runDirectory}`,
+    route: "pass",
   }
 }
 

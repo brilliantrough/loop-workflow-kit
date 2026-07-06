@@ -1,19 +1,82 @@
 {
-  "version": 1,
-  "runInput": {
-    "goal": "Short user request",
-    "referencePath": "path/to/reference",
-    "constraintsPath": "rules/domain-rules.md"
+  "version": 2,
+  "run": {
+    "runId": "operator-dsl-loop-0001",
+    "workflowName": "operator-dsl-loop",
+    "workflowVersion": "2026-07-07",
+    "inputArtifact": "artifacts/input.json"
   },
-  "artifacts": {
-    "plan": "artifacts/plan.json",
-    "codegenReport": "artifacts/codegen-report.md",
-    "correctness": "artifacts/correctness.json",
-    "performance": "artifacts/perf.json",
-    "review": "artifacts/review.json"
+  "sourceStage": {
+    "id": "plan",
+    "attempt": 1,
+    "status": "completed",
+    "outputArtifact": "artifacts/plan-output.md",
+    "summaryArtifact": "artifacts/plan-summary.json"
   },
-  "stagePolicy": {
-    "mustInject": ["runInput", "previousOutput", "selectedArtifacts"],
-    "mustPersist": ["prompt", "stdout", "stderr", "result"]
+  "targetStage": {
+    "id": "codegen",
+    "role": "Generate implementation from plan artifacts",
+    "promptTemplate": "prompts/codegen.md",
+    "requiredOutputs": [
+      "generated/operator.dsl",
+      "artifacts/codegen-report.md"
+    ],
+    "stopCondition": "Do not report completion unless every required output exists."
+  },
+  "injection": {
+    "sections": [
+      {
+        "label": "Run Input",
+        "artifact": "artifacts/input.json",
+        "required": true
+      },
+      {
+        "label": "Fixed Stage System Prompt",
+        "promptTemplate": true,
+        "required": true
+      },
+      {
+        "label": "Previous Stage Output",
+        "artifact": "artifacts/plan-output.md",
+        "required": true
+      },
+      {
+        "label": "Plan Summary",
+        "artifact": "artifacts/plan-summary.json",
+        "required": false
+      },
+      {
+        "label": "Stage Handoff",
+        "artifact": "artifacts/handoff.codegen.md",
+        "required": true
+      },
+      {
+        "label": "Rules",
+        "artifact": "rules/operator-rules.md",
+        "required": false
+      }
+    ],
+    "renderOrder": [
+      "Run Input",
+      "Fixed Stage System Prompt",
+      "Previous Stage Output",
+      "Plan Summary",
+      "Stage Handoff",
+      "Rules"
+    ]
+  },
+  "persistence": {
+    "mustWrite": [
+      "prompt",
+      "stdout",
+      "stderr",
+      "result",
+      "selectedArtifacts"
+    ],
+    "selectedArtifactsRecord": "artifacts/handoff.codegen.selected.json"
+  },
+  "routing": {
+    "onSuccess": "correctness",
+    "onFailure": "plan"
   }
 }

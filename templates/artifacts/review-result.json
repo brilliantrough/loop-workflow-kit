@@ -1,9 +1,31 @@
 {
-  "approved": false,
-  "sendTo": "plan",
-  "reason": "Review found a workflow-level issue",
-  "requiredPlanChanges": [
-    "Add the missing constraint to the plan artifact",
-    "Regenerate downstream implementation from the revised plan"
-  ]
+  "version": 2,
+  "reviewStage": {
+    "id": "review",
+    "attempt": 1,
+    "status": "completed"
+  },
+  "decision": {
+    "approved": false,
+    "route": "plan",
+    "severity": "workflow",
+    "reason": "Review found a workflow-level issue"
+  },
+  "feedback": {
+    "summary": "The current strategy needs another planning pass.",
+    "requiredPlanChanges": [
+      "Add the missing constraint to the plan artifact",
+      "Regenerate downstream implementation from the revised plan"
+    ],
+    "requiredLocalFixes": [],
+    "artifactsToCarryForward": [
+      "artifacts/correctness.json",
+      "artifacts/perf.json",
+      "artifacts/review-notes.md"
+    ]
+  },
+  "routing": {
+    "nextNode": "plan",
+    "handoffManifest": "artifacts/handoff.plan.json"
+  }
 }
