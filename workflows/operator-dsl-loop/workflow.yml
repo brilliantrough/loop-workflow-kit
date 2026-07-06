@@ -4,11 +4,13 @@ nodes:
   plan:
     kind: agent
     engine: opencode
+    session: plan
     prompt: prompts/operator-plan.md
     next: codegen
   codegen:
     kind: agent
     engine: codex
+    session: codegen
     sandbox: workspace-write
     prompt: prompts/operator-codegen.md
     next: correctness
@@ -21,13 +23,15 @@ nodes:
       - checks/fake-correctness.ts
       - --run-dir
       - "{{runDirectory}}"
-    pass: perf
-    fail: repair_correctness
-  repair_correctness:
-    kind: agent
-    engine: codex
-    sandbox: workspace-write
-    prompt: prompts/operator-repair-correctness.md
+    pass: optimize
+    fail: codegen_feedback
+  codegen_feedback:
+    kind: agent_feedback
+    session: codegen
+    inject:
+      artifacts:
+        - artifacts/correctness.json
+      message: "检验不通过的，请继续修改代码。"
     next: correctness
     max_attempts: 2
   perf:
@@ -40,15 +44,48 @@ nodes:
       - --run-dir
       - "{{runDirectory}}"
     pass: review
-    fail: optimize
+    fail: optimize_feedback
   optimize:
     kind: agent
     engine: codex
+    session: optimize
     sandbox: workspace-write
     prompt: prompts/operator-optimize.md
+    next: perf
+  optimize_feedback:
+    kind: agent_feedback
+    session: optimize
+    inject:
+      artifacts:
+        - artifacts/perf.json
+      message: "检验不通过的，请继续修改代码。"
     next: perf
     max_attempts: 2
   review:
     kind: agent
     engine: opencode
+    session: review
     prompt: prompts/operator-review.md
+    decision:
+      artifact: artifacts/review-result.json
+      pass_contains: "合格"
+    pass: finalize
+    fail: plan_feedback
+  plan_feedback:
+    kind: agent_feedback
+    session: plan
+    inject:
+      artifacts:
+        - artifacts/review-result.json
+        - artifacts/review-notes.md
+      message: "Review 未通过。请根据 review 意见重新规划，并重启本轮 workflow。"
+    next: codegen
+  finalize:
+    kind: command
+    cwd: ..
+    command:
+      - bun
+      - run
+      - checks/fake-finalize.ts
+      - --run-dir
+      - "{{runDirectory}}"
