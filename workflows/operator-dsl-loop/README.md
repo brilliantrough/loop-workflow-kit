@@ -2,7 +2,7 @@
 
 Framework-first loop workflow for generating optimized DSL operators from compact user intent and a PyTorch reference implementation path.
 
-This packaged workflow intentionally keeps correctness and performance checks fake. The goal is to provide a reusable workflow shape that downstream repositories can replace with real checker scripts without redesigning the loop contracts.
+This packaged workflow intentionally keeps correctness and performance checks fake. The goal is to provide a reusable workflow shape and a session-capable prototype runtime that downstream repositories can adapt by replacing environment-specific adapters without redesigning the loop contracts.
 
 ## Flow
 
@@ -31,10 +31,14 @@ This example is prototype-complete at the framework layer. It already defines:
 - runner feedback nodes that inject failed gate output back into the same agent session
 - agent-stage prompt roles and expected outputs
 - machine-readable gate outputs, even though the gate logic is fake
+- a handoff manifest the runner actually consumes for deterministic prompt assembly
 - example handoff and review artifacts that show what a runner must preserve
+- fake persistent sessions, prompt persistence, and replay/debug entrypoints
 - rule artifacts that should be injected during plan, codegen, and review
 
 Prototype-complete here means a production repository should be able to keep the same workflow shape and contracts while swapping in real adapters.
+
+Review routing is driven by the structured field `decision.approved === true`. The text signal `合格` remains in the example review artifact for human readability and backward-compatible prototype checks, but it is not the canonical machine-routing field.
 
 ## Files
 
@@ -51,10 +55,25 @@ Prototype-complete here means a production repository should be able to keep the
 From the repository root, run:
 
 ```bash
-bun run prototype:operator
+bun run prototype:run -- --workflow workflows/operator-dsl-loop/workflow.yml
 ```
 
-This command uses the placeholder runner. It logs agent session boundaries, executes fake correctness/perf/finalize commands, and writes runtime output under `.runs/operator-dsl-loop`. Production environments should replace the placeholder runner with real agent session orchestration.
+This command uses the session-capable prototype runner. It derives a canonical run directory from the sample input run id, creates or resumes fake persistent sessions, assembles prompts from `handoff-manifest.json`, executes fake correctness/perf/finalize commands, and writes runtime output under `.runs/operator-dsl-loop/<runId>`.
+
+On startup, the runner also prints the concrete inspect/sessions/debug-guide commands for that run directory and writes the full set of replay commands to:
+
+```text
+<run-dir>/artifacts/prototype-debug-commands.txt
+```
+
+Additional debug entrypoints:
+
+```bash
+bun run prototype:replay -- --workflow workflows/operator-dsl-loop/workflow.yml --mode inspect --run-dir .runs/operator-dsl-loop/layer-norm-operator-dsl
+bun run prototype:replay -- --workflow workflows/operator-dsl-loop/workflow.yml --mode sessions --run-dir .runs/operator-dsl-loop/layer-norm-operator-dsl
+bun run prototype:replay -- --workflow workflows/operator-dsl-loop/workflow.yml --mode stage --run-dir .runs/operator-dsl-loop/layer-norm-operator-dsl --stage codegen
+bun run prototype:replay -- --workflow workflows/operator-dsl-loop/workflow.yml --mode gate --run-dir .runs/operator-dsl-loop/layer-norm-operator-dsl --gate correctness
+```
 
 ## Production Replacement Surfaces
 
@@ -66,20 +85,17 @@ Downstream repositories should preserve the graph and artifact contracts, but re
 - `artifacts/input.json` -> real run input shape produced by the runtime entrypoint
 - `rules/` -> repository-specific domain rules, review rules, and guardrails
 
-The production repository must also add the parts this kit deliberately omits:
+The production repository must still add the parts this kit deliberately omits:
 
-- runner code that assembles prompts from `handoff-manifest.json`
-- runner support for persistent agent sessions and `agent_feedback` continuation nodes
-- runner support for review decisions such as `pass_contains: "合格"`
-- artifact persistence for prompt, stdout, stderr, result, and selected artifacts
-- debug entrypoints for replaying a single stage or a single gate
 - environment bootstrap for the reference implementation, datasets, and toolchain
 - logging and metrics that make failed loops diagnosable
+- real engine adapters for OpenCode / Codex / HTTP session APIs
+- real correctness, perf, and finalize commands
 
 ## Migration Order
 
 1. Copy the workflow, prompt, rule, and artifact templates into the target repository.
 2. Replace the fake correctness, perf, and finalize commands with real scripts.
-3. Keep the handoff and review artifact contracts stable while wiring the real runner.
-4. Add replay and debug commands before running the full loop.
+3. Replace the fake session adapter with the target repository's real agent-session adapter.
+4. Keep the handoff and review artifact contracts stable while wiring environment-specific paths and sandboxes.
 5. Only then tune repository-specific thresholds, datasets, and deployment hooks.

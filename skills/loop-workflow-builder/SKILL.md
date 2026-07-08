@@ -24,6 +24,8 @@ Do not use this for a one-shot coding task with no stage boundaries.
 
 When the workflow prototype needs to move into a real runtime repository, pair this skill with `workflow-production-adapter`.
 
+When you need a fast starting point inside this repository, prefer scaffolding a runnable starter with `bun run scaffold:workflow -- --name <workflow-name>` before refining the generated files.
+
 ## Prompt And Handoff Separation
 
 Every `agent` node should have a fixed stage prompt. That prompt should include:
@@ -47,7 +49,7 @@ Every workflow should define four surfaces:
 | Handoff | Moves context between stages | `handoff-manifest.json` |
 | Gates | Decide pass/fail outside the agent | checker scripts and result JSON |
 | Review | Converts rule failures into feedback | `review-result.json` |
-| Runner | Starts the prototype and shows production insertion points | placeholder runner and startup command |
+| Runner | Starts the prototype and proves session lifecycle plus replay surfaces | session-capable prototype runner and startup command |
 
 ## Node Types
 
@@ -118,9 +120,11 @@ The runner, not the previous agent, should choose which artifacts to inject and 
 
 ## Graph Design Rules
 
-- When generating a workflow prototype, generate a matching placeholder runner and a concrete startup command. A workflow without a startup surface is not prototype-complete.
-- The placeholder runner may be minimal: read the graph, seed a run directory, log agent wakeups, execute fake command/gate nodes, and stop at documented production insertion points.
-- Do not present the placeholder runner as production orchestration. Production repositories must replace or extend it with real agent-session control, persistence, replay, and environment wiring.
+- When generating a workflow prototype, generate a matching session-capable prototype runner and a concrete startup command. A workflow without a startup surface is not prototype-complete.
+- In this repository, prefer the generic runner surface `bun run prototype:run -- --workflow workflows/<name>/workflow.yml` and the generic replay surface `bun run prototype:replay -- --workflow workflows/<name>/workflow.yml ...`. Workflow-local wrapper scripts are optional convenience aliases, not required framework primitives.
+- The prototype runner may keep fake adapters, but it should still prove canonical run-directory setup, session create/resume, deterministic prompt assembly, gate feedback continuation, and replay/debug entrypoints.
+- Replay/debug should include `inspect`, `sessions`, single-stage replay, and single-gate replay. A prototype should also generate a per-run debug guide so the exact commands are discoverable from artifacts instead of living only in README prose.
+- Do not present the prototype runner as production orchestration. Production repositories must replace or extend the fake adapters with real agent-session control, environment wiring, auth, and observability.
 - Put correctness and performance decisions in `gate` or `command` nodes, not in agent self-reporting.
 - Treat judgment nodes as configurable by workflow philosophy: use bash/command gates for hard checks by default, and use agent judgment only when the user explicitly wants qualitative review or rubric-based assessment.
 - In prototype workflows, bash/command gates may be fake placeholders when the real validator belongs in a production repository. The fake gate must still preserve the intended CLI shape, artifact names, pass/fail routing, and machine-readable result schema.
@@ -142,14 +146,21 @@ Use the templates in this skill directory:
 - `templates/typescript/gate-checker.ts`
 - `templates/typescript/prompt-assembler.ts`
 
+When authoring the run contract, prefer a canonical run-directory slug derived from stable input fields. A single `runId` is acceptable for toy examples, but multi-field slugs such as `operatorDir + backend` are often a better production identity surface.
+
 The packaged `workflows/operator-dsl-loop/` example is meant to be prototype-complete at the framework layer. Production repositories should preserve its graph and artifact contracts while replacing fake commands, rule files, and runtime adapters.
+
+When the target runtime is expected to call a real OpenCode server, do not leave the migration team to rediscover the transport seam. Pair this skill with `workflow-production-adapter` and start from `templates/production-adapters/opencode-http-session/`.
+
+Treat TypeScript/Bun as the prototype authoring and validation stack in this kit. For production migration, choose either the Python OpenCode template or the TypeScript/Bun OpenCode template based on the target repository's runtime ecosystem. They should share `workflow.yml`, `handoff-manifest.json`, and artifact contracts, not ad hoc runtime assumptions.
 
 ## Common Mistakes
 
 | Mistake | Fix |
 |---|---|
-| Workflow prototype has no startup command | Add a placeholder runner such as `bun run prototype:<name>` |
-| Placeholder runner is treated as production orchestration | Mark it as prototype-only and document production insertion points |
+| Workflow prototype has no startup or replay command | Add a session-capable prototype runner such as `bun run prototype:run -- --workflow workflows/<name>/workflow.yml` plus replay commands |
+| Prototype runner only logs agent wakeups | Make it prove fake session lifecycle and manifest-based prompt assembly before production adaptation |
+| Prototype runner is treated as production orchestration | Mark it as prototype-only and document production insertion points |
 | Agent decides whether correctness passed | Put correctness in a `gate` command |
 | Prototype gate is omitted because real checker is not ready | Add a fake bash/command placeholder with the final CLI and artifact contract |
 | Fake gate is treated as production validation | Mark it as fake and replace it during production adaptation |

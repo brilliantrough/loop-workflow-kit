@@ -1,0 +1,26 @@
+runtime:
+  runner:
+    command: bun run workflows/<workflow-name>/runner.ts
+    transport: opencode-http-session
+    adapter: workflows/<workflow-name>/opencode-http.ts
+    language: typescript-bun
+  promptAssembly:
+    manifest: handoff-manifest.json
+    deterministic: true
+  runDirectory:
+    root: .runs/<workflow-name>
+    deriveFromInput: <stable-field-a>+<stable-field-b>
+    resumePolicy: auto
+    freshRunMarker: .<workflow-name>-run
+  replay:
+    inspectCommand: bun run workflows/<workflow-name>/runner-replay.ts --mode inspect --run-dir {{runDirectory}}
+    stageCommand: bun run workflows/<workflow-name>/runner-replay.ts --mode stage --run-dir {{runDirectory}} --stage {{stage}}
+    gateCommand: bun run workflows/<workflow-name>/runner-replay.ts --mode gate --run-dir {{runDirectory}} --gate {{gate}}
+    sessionsCommand: bun run workflows/<workflow-name>/runner-replay.ts --mode sessions --run-dir {{runDirectory}}
+  decision:
+    artifact: artifacts/review-result.json
+    jsonPath:
+      - decision
+      - approved
+    equals: true
+    approvalSignal: 合格

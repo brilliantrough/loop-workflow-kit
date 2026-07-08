@@ -3,6 +3,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "prototype:operator": "bun run scripts/prototype-operator-runner.ts --workflow workflows/operator-dsl-loop/workflow.yml --run-dir .runs/operator-dsl-loop"
+    "prototype:run": "bun run scripts/prototype-workflow-runner.ts",
+    "prototype:replay": "bun run scripts/prototype-workflow-replay.ts",
+    "prototype:operator": "bun run prototype:run -- --workflow workflows/operator-dsl-loop/workflow.yml",
+    "prototype:operator:stage": "bun run prototype:replay -- --workflow workflows/operator-dsl-loop/workflow.yml --mode stage",
+    "prototype:operator:gate": "bun run prototype:replay -- --workflow workflows/operator-dsl-loop/workflow.yml --mode gate",
+    "prototype:operator:inspect": "bun run prototype:replay -- --workflow workflows/operator-dsl-loop/workflow.yml --mode inspect",
+    "prototype:operator:sessions": "bun run prototype:replay -- --workflow workflows/operator-dsl-loop/workflow.yml --mode sessions",
+    "scaffold:workflow": "bun run scripts/scaffold-workflow.ts",
+    "test": "bun test"
   }
 }

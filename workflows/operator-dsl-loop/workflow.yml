@@ -1,33 +1,82 @@
 name: operator-dsl-loop
 entry: plan
+runtime:
+  runner:
+    command: bun run prototype:run -- --workflow workflows/operator-dsl-loop/workflow.yml
+    transport: fake-session
+    adapter: scripts/runtime/fake-session-server.ts
+  promptAssembly:
+    manifest: handoff-manifest.json
+    deterministic: true
+  runDirectory:
+    root: .runs/operator-dsl-loop
+    deriveFromInput: runId
+    resumePolicy: auto
+    freshRunMarker: .operator-dsl-loop-run
+  replay:
+    inspectCommand: bun run prototype:replay -- --workflow workflows/operator-dsl-loop/workflow.yml --mode inspect --run-dir {{runDirectory}}
+    stageCommand: bun run prototype:replay -- --workflow workflows/operator-dsl-loop/workflow.yml --mode stage --run-dir {{runDirectory}} --stage {{stage}}
+    gateCommand: bun run prototype:replay -- --workflow workflows/operator-dsl-loop/workflow.yml --mode gate --run-dir {{runDirectory}} --gate {{gate}}
+    sessionsCommand: bun run prototype:replay -- --workflow workflows/operator-dsl-loop/workflow.yml --mode sessions --run-dir {{runDirectory}}
+  decision:
+    artifact: artifacts/review-result.json
+    jsonPath:
+      - decision
+      - approved
+    equals: true
+    approvalSignal: 合格
 nodes:
   plan:
     kind: agent
     engine: opencode
+    transport: session
+    agent: plan
     session: plan
     prompt: prompts/operator-plan.md
+    handoffManifest: handoff-manifest.json#/stages/plan
+    outputs:
+      required:
+        - artifacts/plan-output.md
+        - artifacts/plan-summary.json
+        - artifacts/handoff.codegen.md
+      clearOnEnter:
+        - artifacts/plan-output.md
+        - artifacts/plan-summary.json
+        - artifacts/handoff.codegen.md
     next: codegen
   codegen:
     kind: agent
     engine: codex
+    transport: session
+    agent: build
     session: codegen
     sandbox: workspace-write
     prompt: prompts/operator-codegen.md
+    handoffManifest: handoff-manifest.json#/stages/codegen
+    outputs:
+      required:
+        - generated/operator.dsl
+        - artifacts/codegen-report.md
+      clearOnEnter:
+        - generated/operator.dsl
+        - artifacts/codegen-report.md
     next: correctness
   correctness:
     kind: gate
-    cwd: ..
+    cwd: .
     command:
       - bun
       - run
       - checks/fake-correctness.ts
       - --run-dir
       - "{{runDirectory}}"
+    resultArtifact: artifacts/correctness.json
     pass: optimize
     fail: codegen_feedback
   codegen_feedback:
     kind: agent_feedback
     session: codegen
+    handoffManifest: handoff-manifest.json#/stages/codegen_feedback
     inject:
       artifacts:
         - artifacts/correctness.json
@@ -36,25 +85,33 @@ nodes:
     max_attempts: 2
   perf:
     kind: command
-    cwd: ..
+    cwd: .
     command:
       - bun
       - run
       - checks/fake-perf.ts
       - --run-dir
       - "{{runDirectory}}"
+    resultArtifact: artifacts/perf.json
     pass: review
     fail: optimize_feedback
   optimize:
     kind: agent
     engine: codex
+    transport: session
+    agent: build
     session: optimize
     sandbox: workspace-write
     prompt: prompts/operator-optimize.md
+    handoffManifest: handoff-manifest.json#/stages/optimize
+    outputs:
+      required:
+        - artifacts/codegen-report.md
     next: perf
   optimize_feedback:
     kind: agent_feedback
     session: optimize
+    handoffManifest: handoff-manifest.json#/stages/optimize_feedback
     inject:
       artifacts:
         - artifacts/perf.json
@@ -64,16 +121,31 @@ nodes:
   review:
     kind: agent
     engine: opencode
+    transport: session
+    agent: review
     session: review
     prompt: prompts/operator-review.md
+    handoffManifest: handoff-manifest.json#/stages/review
+    outputs:
+      required:
+        - artifacts/review-notes.md
+        - artifacts/review-result.json
+      clearOnEnter:
+        - artifacts/review-notes.md
+        - artifacts/review-result.json
     decision:
       artifact: artifacts/review-result.json
+      jsonPath:
+        - decision
+        - approved
+      equals: true
       pass_contains: "合格"
     pass: finalize
     fail: plan_feedback
   plan_feedback:
     kind: agent_feedback
     session: plan
+    handoffManifest: handoff-manifest.json#/stages/plan_feedback
     inject:
       artifacts:
         - artifacts/review-result.json
@@ -82,10 +154,11 @@ nodes:
     next: codegen
   finalize:
     kind: command
-    cwd: ..
+    cwd: .
     command:
       - bun
       - run
       - checks/fake-finalize.ts
       - --run-dir
       - "{{runDirectory}}"
+    resultArtifact: artifacts/finalize.json

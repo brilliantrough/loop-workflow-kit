@@ -1,0 +1,6 @@
+{
+  "workflow": "__WORKFLOW_NAME__",
+  "objective": "Generate the prototype target artifact",
+  "correctnessStrategy": "Compare behavior against the reference input and keep changes minimal when gates fail",
+  "optimizationFocus": "Reduce redundant work while preserving the original plan"
+}

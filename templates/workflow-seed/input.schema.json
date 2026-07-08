@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "__WORKFLOW_NAME__/input.schema.json",
+  "title": "__WORKFLOW_NAME__ input",
+  "type": "object",
+  "required": [
+    "runId",
+    "workflowVersion",
+    "goal",
+    "referencePath",
+    "targetArtifact",
+    "targetBackend",
+    "sessionMode",
+    "performanceTarget"
+  ],
+  "properties": {
+    "runId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "workflowVersion": {
+      "type": "string",
+      "minLength": 1
+    },
+    "goal": {
+      "type": "string",
+      "minLength": 1
+    },
+    "referencePath": {
+      "type": "string",
+      "minLength": 1
+    },
+    "targetArtifact": {
+      "type": "string",
+      "minLength": 1
+    },
+    "targetBackend": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sessionMode": {
+      "type": "string",
+      "enum": [
+        "persistent"
+      ]
+    },
+    "performanceTarget": {
+      "type": "object",
+      "required": [
+        "minSpeedupVsReference"
+      ],
+      "properties": {
+        "minSpeedupVsReference": {
+          "type": "number"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

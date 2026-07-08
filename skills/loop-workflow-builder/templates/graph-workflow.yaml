@@ -1,16 +1,67 @@
 name: example-loop
 entry: plan
+runtime:
+  runner:
+    command: bun run prototype:run -- --workflow workflows/example-loop/workflow.yml
+    transport: fake-session
+    adapter: scripts/runtime/fake-session-server.ts
+  promptAssembly:
+    manifest: handoff-manifest.json
+    deterministic: true
+  runDirectory:
+    root: .runs/example-loop
+    deriveFromInput: targetArtifact+targetBackend
+    resumePolicy: auto
+    freshRunMarker: .example-loop-run
+  replay:
+    inspectCommand: bun run prototype:replay -- --workflow workflows/example-loop/workflow.yml --mode inspect --run-dir {{runDirectory}}
+    stageCommand: bun run prototype:replay -- --workflow workflows/example-loop/workflow.yml --mode stage --run-dir {{runDirectory}} --stage {{stage}}
+    gateCommand: bun run prototype:replay -- --workflow workflows/example-loop/workflow.yml --mode gate --run-dir {{runDirectory}} --gate {{gate}}
+    sessionsCommand: bun run prototype:replay -- --workflow workflows/example-loop/workflow.yml --mode sessions --run-dir {{runDirectory}}
+  decision:
+    artifact: artifacts/review-result.json
+    jsonPath:
+      - decision
+      - approved
+    equals: true
+    approvalSignal: 合格
 nodes:
   plan:
     kind: agent
     engine: opencode
+    transport: session
+    agent: planner
+    session: plan
     prompt: prompts/plan.md
+    handoffManifest: handoff-manifest.json#/stages/plan
+    outputs:
+      required:
+        - artifacts/plan-output.md
+        - artifacts/plan-summary.json
+        - artifacts/handoff.codegen.md
+      clearOnEnter:
+        - artifacts/plan-output.md
+        - artifacts/plan-summary.json
+        - artifacts/handoff.codegen.md
+        - artifacts/handoff.plan.selected.json
     next: codegen
   codegen:
     kind: agent
     engine: codex
+    transport: session
+    agent: build
+    session: codegen
     sandbox: workspace-write
     prompt: prompts/codegen.md
+    handoffManifest: handoff-manifest.json#/stages/codegen
+    outputs:
+      required:
+        - generated/output.txt
+        - artifacts/codegen-report.md
+      clearOnEnter:
+        - generated/output.txt
+        - artifacts/codegen-report.md
+        - artifacts/handoff.codegen.selected.json
     next: correctness
   correctness:
     kind: gate
@@ -20,15 +71,35 @@ nodes:
       - checks/correctness.ts
       - --run-dir
       - "{{runDirectory}}"
-    pass: perf
-    fail: repair_correctness
-  repair_correctness:
+    resultArtifact: artifacts/correctness.json
+    pass: optimize
+    fail: codegen_feedback
+  codegen_feedback:
+    kind: agent_feedback
+    session: codegen
+    prompt: prompts/codegen.md
+    handoffManifest: handoff-manifest.json#/stages/codegen_feedback
+    inject:
+      artifacts:
+        - artifacts/correctness.json
+      message: "Check failed. Continue fixing the same implementation."
+    next: correctness
+    max_attempts: 2
+  optimize:
     kind: agent
     engine: codex
+    transport: session
+    agent: build
+    session: optimize
     sandbox: workspace-write
-    prompt: prompts/repair-correctness.md
-    next: correctness
-    max_attempts: 3
+    prompt: prompts/optimize.md
+    handoffManifest: handoff-manifest.json#/stages/optimize
+    outputs:
+      required:
+        - artifacts/codegen-report.md
+      clearOnEnter:
+        - artifacts/handoff.optimize.selected.json
+    next: perf
   perf:
     kind: command
     command:
@@ -37,21 +108,56 @@ nodes:
       - checks/perf.ts
       - --run-dir
       - "{{runDirectory}}"
+    resultArtifact: artifacts/perf.json
     pass: review
-    fail: optimize
-  optimize:
-    kind: agent
-    engine: codex
-    sandbox: workspace-write
+    fail: optimize_feedback
+  optimize_feedback:
+    kind: agent_feedback
+    session: optimize
     prompt: prompts/optimize.md
+    handoffManifest: handoff-manifest.json#/stages/optimize_feedback
+    inject:
+      artifacts:
+        - artifacts/perf.json
+      message: "Performance target failed. Continue optimizing the same implementation."
     next: perf
-    max_attempts: 3
+    max_attempts: 2
   review:
     kind: agent
     engine: opencode
+    transport: session
+    agent: review
+    session: review
     prompt: prompts/review.md
+    handoffManifest: handoff-manifest.json#/stages/review
+    outputs:
+      required:
+        - artifacts/review-notes.md
+        - artifacts/review-result.json
+      clearOnEnter:
+        - artifacts/review-notes.md
+        - artifacts/review-result.json
+        - artifacts/handoff.review.selected.json
+    decision:
+      artifact: artifacts/review-result.json
+      jsonPath:
+        - decision
+        - approved
+      equals: true
+      pass_contains: "合格"
     pass: finalize
-    fail: plan
+    fail: plan_feedback
+  plan_feedback:
+    kind: agent_feedback
+    session: plan
+    prompt: prompts/plan.md
+    handoffManifest: handoff-manifest.json#/stages/plan_feedback
+    inject:
+      artifacts:
+        - artifacts/review-result.json
+        - artifacts/review-notes.md
+      message: "Review rejected the strategy. Re-plan before restarting the loop."
+    next: codegen
   finalize:
     kind: command
     command:
@@ -60,3 +166,4 @@ nodes:
       - checks/finalize.ts
       - --run-dir
       - "{{runDirectory}}"
+    resultArtifact: artifacts/finalize.json

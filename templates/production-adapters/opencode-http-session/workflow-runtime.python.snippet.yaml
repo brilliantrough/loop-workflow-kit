@@ -1,0 +1,26 @@
+runtime:
+  runner:
+    command: python workflows/<workflow-name>/runner.py
+    transport: opencode-http-session
+    adapter: workflows/<workflow-name>/opencode_http.py
+    language: python
+  promptAssembly:
+    manifest: handoff-manifest.json
+    deterministic: true
+  runDirectory:
+    root: .runs/<workflow-name>
+    deriveFromInput: <stable-field-a>+<stable-field-b>
+    resumePolicy: auto
+    freshRunMarker: .<workflow-name>-run
+  replay:
+    inspectCommand: python workflows/<workflow-name>/runner_replay.py --mode inspect --run-dir {{runDirectory}}
+    stageCommand: python workflows/<workflow-name>/runner_replay.py --mode stage --run-dir {{runDirectory}} --stage {{stage}}
+    gateCommand: python workflows/<workflow-name>/runner_replay.py --mode gate --run-dir {{runDirectory}} --gate {{gate}}
+    sessionsCommand: python workflows/<workflow-name>/runner_replay.py --mode sessions --run-dir {{runDirectory}}
+  decision:
+    artifact: artifacts/review-result.json
+    jsonPath:
+      - decision
+      - approved
+    equals: true
+    approvalSignal: 合格

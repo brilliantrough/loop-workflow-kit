@@ -1,0 +1,498 @@
+{
+  "version": 3,
+  "run": {
+    "workflowName": "operator-dsl-loop",
+    "workflowVersion": "2026-07-07",
+    "inputArtifact": "artifacts/input.json",
+    "defaultRunDirectoryRoot": ".runs/operator-dsl-loop",
+    "runIdField": "runId",
+    "freshRunMarker": ".operator-dsl-loop-run",
+      "seedArtifacts": [
+        "artifacts/input.json",
+        "rules/operator-rules.md",
+        "rules/operator-review.md",
+        "reference/layer_norm.py"
+      ]
+    },
+  "decision": {
+    "artifact": "artifacts/review-result.json",
+    "jsonPath": [
+      "decision",
+      "approved"
+    ],
+    "equals": true,
+    "approvalSignal": "合格"
+  },
+  "sessions": {
+    "plan": {
+      "engine": "opencode",
+      "agent": "plan"
+    },
+    "codegen": {
+      "engine": "codex",
+      "agent": "build"
+    },
+    "optimize": {
+      "engine": "codex",
+      "agent": "build"
+    },
+    "review": {
+      "engine": "opencode",
+      "agent": "review"
+    }
+  },
+  "stages": {
+    "plan": {
+      "session": "plan",
+      "promptTemplate": "prompts/operator-plan.md",
+      "requiredOutputs": [
+        "artifacts/plan-output.md",
+        "artifacts/plan-summary.json",
+        "artifacts/handoff.codegen.md"
+      ],
+      "clearOnEnter": [
+        "artifacts/plan-output.md",
+        "artifacts/plan-summary.json",
+        "artifacts/handoff.codegen.md",
+        "artifacts/handoff.codegen.selected.json"
+      ],
+      "prototypeOutputs": [
+        "artifacts/plan-output.md",
+        "artifacts/plan-summary.json",
+        "artifacts/handoff.codegen.md",
+        "artifacts/handoff.codegen.json"
+      ],
+      "injection": {
+        "sections": [
+          {
+            "label": "Run Input",
+            "artifact": "artifacts/input.json",
+            "required": true
+          },
+          {
+            "label": "Fixed Stage System Prompt",
+            "promptTemplate": true,
+            "required": true
+          },
+          {
+            "label": "Reference Implementation",
+            "artifact": "reference/layer_norm.py",
+            "required": true
+          },
+          {
+            "label": "Rules",
+            "artifact": "rules/operator-rules.md",
+            "required": false
+          },
+          {
+            "label": "Review Rules",
+            "artifact": "rules/operator-review.md",
+            "required": false
+          }
+        ],
+        "renderOrder": [
+          "Run Input",
+          "Fixed Stage System Prompt",
+          "Reference Implementation",
+          "Rules",
+          "Review Rules"
+        ]
+      },
+      "persistence": {
+        "selectedArtifactsRecord": "artifacts/handoff.plan.selected.json"
+      },
+      "routing": {
+        "onSuccess": "codegen"
+      }
+    },
+    "plan_feedback": {
+      "session": "plan",
+      "promptTemplate": "prompts/operator-plan.md",
+      "requiredOutputs": [
+        "artifacts/plan-output.md",
+        "artifacts/plan-summary.json",
+        "artifacts/handoff.codegen.md"
+      ],
+      "clearOnEnter": [
+        "artifacts/plan-output.md",
+        "artifacts/plan-summary.json",
+        "artifacts/handoff.codegen.md",
+        "artifacts/handoff.plan.selected.json"
+      ],
+      "prototypeOutputs": [
+        "artifacts/plan-output.md",
+        "artifacts/plan-summary.json",
+        "artifacts/handoff.codegen.md",
+        "artifacts/handoff.codegen.json"
+      ],
+      "continuationMessage": "Review 未通过。请根据 review 意见重新规划，并重启本轮 workflow。",
+      "injection": {
+        "sections": [
+          {
+            "label": "Run Input",
+            "artifact": "artifacts/input.json",
+            "required": true
+          },
+          {
+            "label": "Fixed Stage System Prompt",
+            "promptTemplate": true,
+            "required": true
+          },
+          {
+            "label": "Review Result",
+            "artifact": "artifacts/review-result.json",
+            "required": true
+          },
+          {
+            "label": "Review Notes",
+            "artifact": "artifacts/review-notes.md",
+            "required": true
+          },
+          {
+            "label": "Reference Implementation",
+            "artifact": "reference/layer_norm.py",
+            "required": true
+          }
+        ],
+        "renderOrder": [
+          "Run Input",
+          "Fixed Stage System Prompt",
+          "Review Result",
+          "Review Notes",
+          "Reference Implementation"
+        ]
+      },
+      "persistence": {
+        "selectedArtifactsRecord": "artifacts/handoff.plan.selected.json"
+      },
+      "routing": {
+        "onSuccess": "codegen"
+      }
+    },
+    "codegen": {
+      "session": "codegen",
+      "promptTemplate": "prompts/operator-codegen.md",
+      "requiredOutputs": [
+        "generated/operator.dsl",
+        "artifacts/codegen-report.md"
+      ],
+      "clearOnEnter": [
+        "generated/operator.dsl",
+        "artifacts/codegen-report.md",
+        "artifacts/handoff.codegen.selected.json"
+      ],
+      "prototypeOutputs": [
+        "generated/operator.dsl",
+        "artifacts/codegen-report.md"
+      ],
+      "injection": {
+        "sections": [
+          {
+            "label": "Run Input",
+            "artifact": "artifacts/input.json",
+            "required": true
+          },
+          {
+            "label": "Fixed Stage System Prompt",
+            "promptTemplate": true,
+            "required": true
+          },
+          {
+            "label": "Previous Stage Output",
+            "artifact": "artifacts/plan-output.md",
+            "required": true
+          },
+          {
+            "label": "Plan Summary",
+            "artifact": "artifacts/plan-summary.json",
+            "required": false
+          },
+          {
+            "label": "Stage Handoff",
+            "artifact": "artifacts/handoff.codegen.md",
+            "required": true
+          },
+          {
+            "label": "Rules",
+            "artifact": "rules/operator-rules.md",
+            "required": false
+          }
+        ],
+        "renderOrder": [
+          "Run Input",
+          "Fixed Stage System Prompt",
+          "Previous Stage Output",
+          "Plan Summary",
+          "Stage Handoff",
+          "Rules"
+        ]
+      },
+      "persistence": {
+        "selectedArtifactsRecord": "artifacts/handoff.codegen.selected.json"
+      },
+      "routing": {
+        "onSuccess": "correctness"
+      }
+    },
+    "codegen_feedback": {
+      "session": "codegen",
+      "promptTemplate": "prompts/operator-codegen.md",
+      "requiredOutputs": [
+        "generated/operator.dsl",
+        "artifacts/codegen-report.md"
+      ],
+      "clearOnEnter": [
+        "generated/operator.dsl",
+        "artifacts/codegen-report.md",
+        "artifacts/handoff.codegen.selected.json"
+      ],
+      "prototypeOutputs": [
+        "generated/operator.dsl",
+        "artifacts/codegen-report.md"
+      ],
+      "continuationMessage": "检验不通过的，请继续修改代码。",
+      "injection": {
+        "sections": [
+          {
+            "label": "Run Input",
+            "artifact": "artifacts/input.json",
+            "required": true
+          },
+          {
+            "label": "Fixed Stage System Prompt",
+            "promptTemplate": true,
+            "required": true
+          },
+          {
+            "label": "Gate Result",
+            "artifact": "artifacts/correctness.json",
+            "required": true
+          },
+          {
+            "label": "Previous Stage Output",
+            "artifact": "artifacts/codegen-report.md",
+            "required": false
+          }
+        ],
+        "renderOrder": [
+          "Run Input",
+          "Fixed Stage System Prompt",
+          "Gate Result",
+          "Previous Stage Output"
+        ]
+      },
+      "persistence": {
+        "selectedArtifactsRecord": "artifacts/handoff.codegen.selected.json"
+      },
+      "routing": {
+        "onSuccess": "correctness"
+      }
+    },
+    "optimize": {
+      "session": "optimize",
+      "promptTemplate": "prompts/operator-optimize.md",
+      "requiredOutputs": [
+        "artifacts/codegen-report.md"
+      ],
+      "clearOnEnter": [
+        "artifacts/handoff.optimize.selected.json"
+      ],
+      "prototypeOutputs": [
+        "artifacts/codegen-report.md",
+        "artifacts/handoff.review.json"
+      ],
+      "injection": {
+        "sections": [
+          {
+            "label": "Run Input",
+            "artifact": "artifacts/input.json",
+            "required": true
+          },
+          {
+            "label": "Fixed Stage System Prompt",
+            "promptTemplate": true,
+            "required": true
+          },
+          {
+            "label": "Codegen Report",
+            "artifact": "artifacts/codegen-report.md",
+            "required": true
+          },
+          {
+            "label": "Rules",
+            "artifact": "rules/operator-rules.md",
+            "required": false
+          }
+        ],
+        "renderOrder": [
+          "Run Input",
+          "Fixed Stage System Prompt",
+          "Codegen Report",
+          "Rules"
+        ]
+      },
+      "persistence": {
+        "selectedArtifactsRecord": "artifacts/handoff.optimize.selected.json"
+      },
+      "routing": {
+        "onSuccess": "perf"
+      }
+    },
+    "optimize_feedback": {
+      "session": "optimize",
+      "promptTemplate": "prompts/operator-optimize.md",
+      "requiredOutputs": [
+        "artifacts/codegen-report.md"
+      ],
+      "clearOnEnter": [
+        "artifacts/handoff.optimize.selected.json"
+      ],
+      "prototypeOutputs": [
+        "artifacts/codegen-report.md",
+        "artifacts/handoff.review.json"
+      ],
+      "continuationMessage": "检验不通过的，请继续修改代码。",
+      "injection": {
+        "sections": [
+          {
+            "label": "Run Input",
+            "artifact": "artifacts/input.json",
+            "required": true
+          },
+          {
+            "label": "Fixed Stage System Prompt",
+            "promptTemplate": true,
+            "required": true
+          },
+          {
+            "label": "Gate Result",
+            "artifact": "artifacts/perf.json",
+            "required": true
+          },
+          {
+            "label": "Codegen Report",
+            "artifact": "artifacts/codegen-report.md",
+            "required": false
+          }
+        ],
+        "renderOrder": [
+          "Run Input",
+          "Fixed Stage System Prompt",
+          "Gate Result",
+          "Codegen Report"
+        ]
+      },
+      "persistence": {
+        "selectedArtifactsRecord": "artifacts/handoff.optimize.selected.json"
+      },
+      "routing": {
+        "onSuccess": "perf"
+      }
+    },
+    "review": {
+      "session": "review",
+      "promptTemplate": "prompts/operator-review.md",
+      "requiredOutputs": [
+        "artifacts/review-notes.md",
+        "artifacts/review-result.json"
+      ],
+      "clearOnEnter": [
+        "artifacts/review-notes.md",
+        "artifacts/review-result.json",
+        "artifacts/handoff.review.selected.json"
+      ],
+      "prototypeOutputs": [
+        "artifacts/review-notes.md",
+        "artifacts/review-result.json",
+        "artifacts/handoff.plan.json"
+      ],
+      "injection": {
+        "sections": [
+          {
+            "label": "Run Input",
+            "artifact": "artifacts/input.json",
+            "required": true
+          },
+          {
+            "label": "Fixed Stage System Prompt",
+            "promptTemplate": true,
+            "required": true
+          },
+          {
+            "label": "Correctness Evidence",
+            "artifact": "artifacts/correctness.json",
+            "required": true
+          },
+          {
+            "label": "Performance Evidence",
+            "artifact": "artifacts/perf.json",
+            "required": true
+          },
+          {
+            "label": "Codegen Report",
+            "artifact": "artifacts/codegen-report.md",
+            "required": true
+          },
+          {
+            "label": "Rules",
+            "artifact": "rules/operator-review.md",
+            "required": false
+          }
+        ],
+        "renderOrder": [
+          "Run Input",
+          "Fixed Stage System Prompt",
+          "Correctness Evidence",
+          "Performance Evidence",
+          "Codegen Report",
+          "Rules"
+        ]
+      },
+      "persistence": {
+        "selectedArtifactsRecord": "artifacts/handoff.review.selected.json"
+      },
+      "routing": {
+        "onSuccess": "finalize",
+        "onFailure": "plan_feedback"
+      }
+    }
+  },
+  "gates": {
+    "correctness": {
+      "command": [
+        "bun",
+        "run",
+        "checks/fake-correctness.ts",
+        "--run-dir",
+        "{{runDirectory}}"
+      ],
+      "resultArtifact": "artifacts/correctness.json",
+      "pass": "optimize",
+      "fail": "codegen_feedback",
+      "maxAttempts": 2
+    },
+    "perf": {
+      "command": [
+        "bun",
+        "run",
+        "checks/fake-perf.ts",
+        "--run-dir",
+        "{{runDirectory}}"
+      ],
+      "resultArtifact": "artifacts/perf.json",
+      "pass": "review",
+      "fail": "optimize_feedback",
+      "maxAttempts": 2
+    },
+    "finalize": {
+      "command": [
+        "bun",
+        "run",
+        "checks/fake-finalize.ts",
+        "--run-dir",
+        "{{runDirectory}}"
+      ],
+      "resultArtifact": "artifacts/finalize.json"
+    }
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "version": 2,
+  "run": {
+    "runId": "layer-norm-operator-dsl",
+    "workflowName": "operator-dsl-loop",
+    "workflowVersion": "2026-07-07",
+    "inputArtifact": "artifacts/input.json"
+  },
+  "sourceStage": {
+    "id": "optimize",
+    "attempt": 1,
+    "status": "completed",
+    "outputArtifact": "artifacts/codegen-report.md"
+  },
+  "targetStage": {
+    "id": "review",
+    "role": "Review current implementation and external evidence",
+    "promptTemplate": "prompts/operator-review.md",
+    "requiredOutputs": [
+      "artifacts/review-notes.md",
+      "artifacts/review-result.json"
+    ],
+    "stopCondition": "Do not report completion unless both review artifacts exist."
+  },
+  "injection": {
+    "sections": [
+      {
+        "label": "Run Input",
+        "artifact": "artifacts/input.json",
+        "required": true
+      },
+      {
+        "label": "Fixed Stage System Prompt",
+        "promptTemplate": true,
+        "required": true
+      },
+      {
+        "label": "Correctness Evidence",
+        "artifact": "artifacts/correctness.json",
+        "required": true
+      },
+      {
+        "label": "Performance Evidence",
+        "artifact": "artifacts/perf.json",
+        "required": true
+      },
+      {
+        "label": "Codegen Report",
+        "artifact": "artifacts/codegen-report.md",
+        "required": true
+      }
+    ],
+    "renderOrder": [
+      "Run Input",
+      "Fixed Stage System Prompt",
+      "Correctness Evidence",
+      "Performance Evidence",
+      "Codegen Report"
+    ]
+  },
+  "persistence": {
+    "mustWrite": [
+      "prompt",
+      "stdout",
+      "stderr",
+      "result",
+      "selectedArtifacts"
+    ],
+    "selectedArtifactsRecord": "artifacts/handoff.review.selected.json"
+  },
+  "routing": {
+    "onSuccess": "finalize",
+    "onFailure": "plan_feedback"
+  }
+}

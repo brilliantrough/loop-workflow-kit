@@ -1,0 +1,27 @@
+{
+  "version": 2,
+  "reviewStage": {
+    "id": "review",
+    "attempt": 1,
+    "status": "completed"
+  },
+  "decision": {
+    "approved": true,
+    "route": "finalize",
+    "severity": "none",
+    "reason": "合格：Prototype review accepted the current implementation"
+  },
+  "feedback": {
+    "summary": "合格：The prototype loop can finalize this run.",
+    "requiredPlanChanges": [],
+    "requiredLocalFixes": [],
+    "artifactsToCarryForward": [
+      "artifacts/correctness.json",
+      "artifacts/perf.json",
+      "artifacts/review-notes.md"
+    ]
+  },
+  "routing": {
+    "nextNode": "finalize"
+  }
+}

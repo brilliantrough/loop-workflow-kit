@@ -1,0 +1,12 @@
+{
+  "runId": "__SAMPLE_RUN_ID__",
+  "workflowVersion": "2026-07-08",
+  "goal": "Produce the target artifact for __WORKFLOW_NAME__ from the provided reference input",
+  "referencePath": "reference/reference_impl.py",
+  "targetArtifact": "generated/output.txt",
+  "targetBackend": "prototype-backend",
+  "sessionMode": "persistent",
+  "performanceTarget": {
+    "minSpeedupVsReference": 1.1
+  }
+}

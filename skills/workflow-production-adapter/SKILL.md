@@ -16,6 +16,7 @@ Use this skill when:
 - a workflow from this repository is being copied into a real server or runtime repository
 - fake correctness, performance, or finalize commands need real implementations
 - sample artifacts must be replaced with runtime-generated inputs and persisted outputs
+- a fake session adapter or prototype runner must be replaced with real engine/session adapters
 - a runner must replay stages, gates, and reviews during debugging
 
 Do not use this to redesign the workflow graph itself. Use `loop-workflow-builder` first when the graph is still unsettled.
@@ -29,15 +30,27 @@ Keep these stable unless the runner contract itself is changing:
 - gate result shape
 - review result shape
 - stage output expectations
-- placeholder runner startup behavior used to prove the prototype flow
+- prototype runner startup, replay, and persistent-session behavior used to prove the prototype flow
 
 Replace these inside the production repository:
 
 - fake `checks/*.ts` commands
-- the placeholder runner started by `bun run prototype:operator`
+- the fake session adapter and prototype runner started by `bun run prototype:run -- --workflow ...`
 - sample `artifacts/*.json` input and evidence files
 - sample `rules/*.md` policy files
 - placeholder paths, `cwd`, and sandbox choices
+
+If the target repository will use a real OpenCode server/session transport, start from:
+
+- `templates/production-adapters/opencode-http-session/workflow-runtime.snippet.yaml`
+- `templates/production-adapters/opencode-http-session/workflow-runtime.python.snippet.yaml`
+- `templates/production-adapters/opencode-http-session/workflow-runtime.typescript.snippet.yaml`
+- `templates/production-adapters/opencode-http-session/python/`
+- `templates/production-adapters/opencode-http-session/typescript/`
+
+Those files exist specifically to avoid rediscovering OpenCode server bootstrap, session persistence, attach commands, prompt rendering, replay entrypoints, and HTTP interaction during migration.
+
+Pick exactly one production adapter language per migrated workflow unless the target repository explicitly needs both. Choose Python for Python-first runtime/checker ecosystems; choose TypeScript/Bun for Bun-first orchestration and checker ecosystems.
 
 ## Production Checklist
 
@@ -100,16 +113,19 @@ Before enabling full-loop runs, add commands that can:
 
 - replay one stage from a saved run directory
 - run one checker in isolation
+- list persistent sessions or the transport-specific equivalent for that run
 - inspect persisted prompt, stdout, stderr, and result artifacts
 - diff two attempts of the same stage
 
 Without replay, failed loops will be slow to diagnose.
 
-The prototype runner is a starting point for this work. It proves the startup command and graph traversal shape, but production must add real agent-session orchestration, replay controls, durable persistence, and environment-specific execution.
+The prototype runner is a starting point for this work. It should already prove startup, persistent fake sessions, prompt assembly from manifests, replay controls, and durable local persistence. If production uses OpenCode, copy either `opencode-http-session/python/` or `opencode-http-session/typescript/` first, then specialize only the production gates, domain path placeholders, and environment-specific execution concerns.
 
 ### 6. Preserve persistent sessions
 
 Production runners should keep one session per long-lived agent role, such as `plan`, `codegen`, `optimize`, and `review`.
+
+They should also preserve a stable session-observability surface. In simple prototypes this may be a `sessions` replay command plus a generated debug-guide artifact. In real transports it may become HTTP session inspection, server-owned session records, or attach-style client commands. The transport can change; the need for a discoverable observer surface should not.
 
 When an external gate fails, the runner should inject:
 
@@ -145,7 +161,7 @@ At the end of adaptation, the production repository should have:
 | Mistake | Fix |
 |---|---|
 | Rewriting the graph while replacing fake commands | Keep the graph stable; swap adapters first |
-| Discarding the placeholder runner contract | Preserve the startup behavior while replacing the implementation |
+| Discarding the prototype runner contract | Preserve the startup, replay, and persistent-session behavior while replacing the adapters |
 | Removing fake gates instead of replacing them | Keep the node and replace the command implementation |
 | Changing result JSON while replacing fake gates | Preserve the prototype result schema unless the contract intentionally changes |
 | Splitting one persistent worker into repair agents after gate failure | Resume the same session through a feedback node |

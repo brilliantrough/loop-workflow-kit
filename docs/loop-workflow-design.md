@@ -8,13 +8,30 @@ This kit treats a loop workflow as a graph of bounded execution nodes.
 - Keep pass/fail decisions outside agent self-reporting.
 - Move context through artifacts and prompt assembly rather than hidden chat history.
 - Keep domain-specific checkers replaceable.
-- Give every workflow prototype a concrete startup command through a placeholder runner.
+- Give every workflow prototype a concrete startup command through a session-capable prototype runner.
 
 ## Workflow Graph
 
 Each workflow has an `entry` node and a `nodes` map. Nodes route through `next`, `pass`, and `fail`. Agent nodes may declare a stable `session`; feedback nodes use that session to continue the same agent instead of starting a new one.
 
-Every generated workflow should also include a runner surface. In prototype repositories, this can be a placeholder runner that reads the graph, seeds a run directory, logs agent-session wakeups, executes fake command/gate nodes, and exposes a concrete command such as `bun run prototype:<workflow-name>`. The placeholder runner is part of prototype completeness because it proves how the graph is started and where production agent orchestration must be inserted.
+Every generated workflow should also include a runner surface. In prototype repositories, this should be a session-capable prototype runner that reads the graph, seeds a canonical run directory, creates or resumes fake persistent sessions, assembles prompts from a handoff manifest, executes fake command/gate nodes, and exposes concrete startup plus replay commands such as `bun run prototype:run -- --workflow workflows/<name>/workflow.yml`. The prototype runner is part of prototype completeness because it proves how the graph is started, how sessions continue, how prompts are assembled, and where production adapters must be inserted.
+
+Inside this repository, a practical authoring flow is:
+
+1. `bun run scaffold:workflow -- --name <workflow-name>`
+2. refine the generated `workflow.yml`, `handoff-manifest.json`, prompts, and fake checks
+3. validate the prototype with `prototype:run` and `prototype:replay`
+
+The replay surface should cover at least four commands:
+
+1. inspect the persisted run directory
+2. list persisted sessions for that run
+3. replay one stage
+4. replay one gate
+
+Production adaptation may later replace `sessions` with a richer transport-specific observer such as HTTP session inspection or `opencode attach`, but the framework should always expose a stable session-observability surface.
+
+When the target runtime uses OpenCode, the kit already provides Python and TypeScript/Bun production adapter skeletons at `templates/production-adapters/opencode-http-session/`. New production migrations should start there instead of rebuilding server bootstrap, session persistence, attach-command generation, prompt rendering, and replay commands from scratch.
 
 ```yaml
 name: operator-dsl-loop
@@ -51,12 +68,13 @@ The previous agent must not write the next agent's prompt. It should emit struct
 
 The manifest should contain:
 
-1. `run` — run id, workflow name, and the root input artifact
+1. `run` — workflow name, the root input artifact, canonical run-directory policy, and seed artifacts
 2. `sourceStage` — who produced this handoff
 3. `targetStage` — target role, prompt template, required outputs, stop condition
 4. `injection` — ordered prompt sections and artifact references
 5. `persistence` — audit records such as selected artifact lists
 6. `routing` — default next node on success or failure
+7. `clearOnEnter` / `requiredOutputs` — stage freshness and completion contract
 
 The runner should not guess prompt composition. It should follow `injection.renderOrder` exactly.
 
@@ -68,6 +86,8 @@ Prompt assembly should pull from:
 4. selected artifacts
 5. previous stage output
 6. required outputs and stop conditions
+
+The run-directory policy should support more than toy `runId` naming. In practice, reusable workflows often need a stable slug built from multiple input fields, such as `operatorDir + backend` or `targetArtifact + targetBackend`, so the framework contract should permit multi-field run-slug derivation instead of assuming a single `runId` is always the right identity surface.
 
 ## Agent Wakeup
 
@@ -111,33 +131,48 @@ Minimum review result sections:
 
 A failed review can route back to `plan` when strategy changes, or to `repair` when the implementation needs a local correction.
 
-For this prototype, review is an agent decision parsed by the runner. If the review output contains the agreed approval signal `合格`, the runner can route to `finalize`. Otherwise it injects `review-result.json` and `review-notes.md` back into the persistent `plan` session and restarts the loop from planning.
+For this prototype, review is an agent decision parsed by the runner. The canonical routing signal is the structured field `decision.approved === true`; the approval signal `合格` remains a human-readable requirement in the review artifact and prompt contract. If `decision.approved` is false, the runner injects `review-result.json` and `review-notes.md` back into the persistent `plan` session and restarts the loop from planning.
 
 ## Prototype vs Production
 
-This kit stops at workflow contracts. A prototype-complete workflow in this repository should include:
+This kit stops at environment-specific adapters. A prototype-complete workflow in this repository should include:
 
 - a graph with explicit retry and review routing
-- a placeholder runner with a documented startup command
+- a session-capable prototype runner with documented startup and replay commands
+- an inspectable session surface plus a generated per-run debug guide
 - prompt templates that state stage roles and required outputs
+- a handoff manifest that the runner actually consumes
+- persistent fake sessions, prompt persistence, selected-artifact persistence, and replayable state
 - sample handoff and review artifacts that show the runner contracts
 - machine-readable gate outputs, even when the checker itself is fake
 - rule artifacts that future runners can inject into prompts
 
-It should not include a real production workflow runner, production build wiring, benchmark harnesses, or deployment-specific shell logic.
+It should not include real production engine adapters, production build wiring, benchmark harnesses, or deployment-specific shell logic.
 
 Those belong in the target production repository. That repository must own:
 
 - real correctness and performance commands
 - actual reference implementation paths and datasets
-- run directory policy, sandbox policy, and dependency bootstrap
-- stdout/stderr/result persistence and log shipping
-- debug entrypoints for replaying one stage or one gate in isolation
+- environment-specific run directory policy, sandbox policy, and dependency bootstrap
+- stdout/stderr/result shipping beyond the prototype persistence already proven here
+- environment-specific observability, metrics sinks, and auth concerns
 
 Use the production-adaptation skill when moving a packaged workflow into a real runtime repository.
+
+## Language Responsibilities
+
+This repository intentionally keeps the workflow language independent from the runtime implementation language.
+
+TypeScript/Bun is the kit's design-time stack. It should remain responsible for generating prototype workflows, running fake-session loops, proving prompt/gate contracts, and validating examples with fast local tests.
+
+Python is the production adapter stack when a target workflow repository is Python-first. It should own real OpenCode HTTP sessions, process bootstrap, runtime-state persistence, attach-command output, and integration with production checkers.
+
+TypeScript/Bun can also be the production adapter stack when a target workflow repository is Bun-first. It owns the same OpenCode session, replay, attach, and gate-execution responsibilities as the Python adapter, while keeping orchestration and checker code in TypeScript.
+
+The production adapters are therefore interchangeable through artifacts and contracts, not by importing each other's runtime code.
 
 ## Operator DSL Example
 
 The packaged `workflows/operator-dsl-loop/` uses fake checkers to demonstrate framework behavior. It is still prototype-complete because it also packages the rule artifacts, handoff contract, review contract, and finalize path that downstream repositories are expected to preserve.
 
-In a target server repository, replace the fake commands with real PyTorch-reference correctness and performance tooling, keep the artifact contracts stable, and add repository-specific runner, logging, and debug integration.
+In a target server repository, replace the fake commands with real PyTorch-reference correctness and performance tooling, replace the fake session adapter with the real engine/session transport, keep the artifact contracts stable, and add repository-specific logging and environment integration.

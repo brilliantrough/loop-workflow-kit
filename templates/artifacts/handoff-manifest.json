@@ -1,82 +1,496 @@
 {
-  "version": 2,
+  "version": 3,
   "run": {
-    "runId": "operator-dsl-loop-0001",
-    "workflowName": "operator-dsl-loop",
-    "workflowVersion": "2026-07-07",
-    "inputArtifact": "artifacts/input.json"
-  },
-  "sourceStage": {
-    "id": "plan",
-    "attempt": 1,
-    "status": "completed",
-    "outputArtifact": "artifacts/plan-output.md",
-    "summaryArtifact": "artifacts/plan-summary.json"
-  },
-  "targetStage": {
-    "id": "codegen",
-    "role": "Generate implementation from plan artifacts",
-    "promptTemplate": "prompts/codegen.md",
-    "requiredOutputs": [
-      "generated/operator.dsl",
-      "artifacts/codegen-report.md"
+    "workflowName": "example-loop",
+    "workflowVersion": "2026-07-08",
+    "inputArtifact": "artifacts/input.json",
+    "defaultRunDirectoryRoot": ".runs/example-loop",
+    "runSlugFromFields": [
+      "targetArtifact",
+      "targetBackend"
     ],
-    "stopCondition": "Do not report completion unless every required output exists."
-  },
-  "injection": {
-    "sections": [
-      {
-        "label": "Run Input",
-        "artifact": "artifacts/input.json",
-        "required": true
-      },
-      {
-        "label": "Fixed Stage System Prompt",
-        "promptTemplate": true,
-        "required": true
-      },
-      {
-        "label": "Previous Stage Output",
-        "artifact": "artifacts/plan-output.md",
-        "required": true
-      },
-      {
-        "label": "Plan Summary",
-        "artifact": "artifacts/plan-summary.json",
-        "required": false
-      },
-      {
-        "label": "Stage Handoff",
-        "artifact": "artifacts/handoff.codegen.md",
-        "required": true
-      },
-      {
-        "label": "Rules",
-        "artifact": "rules/operator-rules.md",
-        "required": false
-      }
-    ],
-    "renderOrder": [
-      "Run Input",
-      "Fixed Stage System Prompt",
-      "Previous Stage Output",
-      "Plan Summary",
-      "Stage Handoff",
-      "Rules"
+    "freshRunMarker": ".example-loop-run",
+    "seedArtifacts": [
+      "artifacts/input.json",
+      "rules/workflow-rules.md",
+      "rules/review-rules.md",
+      "reference/reference_impl.py"
     ]
   },
-  "persistence": {
-    "mustWrite": [
-      "prompt",
-      "stdout",
-      "stderr",
-      "result",
-      "selectedArtifacts"
+  "decision": {
+    "artifact": "artifacts/review-result.json",
+    "jsonPath": [
+      "decision",
+      "approved"
     ],
-    "selectedArtifactsRecord": "artifacts/handoff.codegen.selected.json"
+    "equals": true,
+    "approvalSignal": "合格"
   },
-  "routing": {
-    "onSuccess": "correctness",
-    "onFailure": "plan"
+  "sessions": {
+    "plan": {
+      "engine": "opencode",
+      "agent": "planner"
+    },
+    "codegen": {
+      "engine": "codex",
+      "agent": "build"
+    },
+    "optimize": {
+      "engine": "codex",
+      "agent": "build"
+    },
+    "review": {
+      "engine": "opencode",
+      "agent": "review"
+    }
+  },
+  "stages": {
+    "plan": {
+      "session": "plan",
+      "promptTemplate": "prompts/plan.md",
+      "requiredOutputs": [
+        "artifacts/plan-output.md",
+        "artifacts/plan-summary.json",
+        "artifacts/handoff.codegen.md"
+      ],
+      "clearOnEnter": [
+        "artifacts/plan-output.md",
+        "artifacts/plan-summary.json",
+        "artifacts/handoff.codegen.md",
+        "artifacts/handoff.plan.selected.json"
+      ],
+      "prototypeOutputs": [
+        "artifacts/plan-output.md",
+        "artifacts/plan-summary.json",
+        "artifacts/handoff.codegen.md"
+      ],
+      "injection": {
+        "sections": [
+          {
+            "label": "Run Input",
+            "artifact": "artifacts/input.json",
+            "required": true
+          },
+          {
+            "label": "Fixed Stage System Prompt",
+            "promptTemplate": true,
+            "required": true
+          },
+          {
+            "label": "Reference Implementation",
+            "artifact": "reference/reference_impl.py",
+            "required": true
+          },
+          {
+            "label": "Workflow Rules",
+            "artifact": "rules/workflow-rules.md",
+            "required": false
+          },
+          {
+            "label": "Review Rules",
+            "artifact": "rules/review-rules.md",
+            "required": false
+          }
+        ],
+        "renderOrder": [
+          "Run Input",
+          "Fixed Stage System Prompt",
+          "Reference Implementation",
+          "Workflow Rules",
+          "Review Rules"
+        ]
+      },
+      "persistence": {
+        "selectedArtifactsRecord": "artifacts/handoff.plan.selected.json"
+      },
+      "routing": {
+        "onSuccess": "codegen"
+      }
+    },
+    "plan_feedback": {
+      "session": "plan",
+      "promptTemplate": "prompts/plan.md",
+      "requiredOutputs": [
+        "artifacts/plan-output.md",
+        "artifacts/plan-summary.json",
+        "artifacts/handoff.codegen.md"
+      ],
+      "clearOnEnter": [
+        "artifacts/plan-output.md",
+        "artifacts/plan-summary.json",
+        "artifacts/handoff.codegen.md",
+        "artifacts/handoff.plan.selected.json"
+      ],
+      "prototypeOutputs": [
+        "artifacts/plan-output.md",
+        "artifacts/plan-summary.json",
+        "artifacts/handoff.codegen.md"
+      ],
+      "continuationMessage": "Review rejected the strategy. Re-plan before restarting the loop.",
+      "injection": {
+        "sections": [
+          {
+            "label": "Run Input",
+            "artifact": "artifacts/input.json",
+            "required": true
+          },
+          {
+            "label": "Fixed Stage System Prompt",
+            "promptTemplate": true,
+            "required": true
+          },
+          {
+            "label": "Review Result",
+            "artifact": "artifacts/review-result.json",
+            "required": true
+          },
+          {
+            "label": "Review Notes",
+            "artifact": "artifacts/review-notes.md",
+            "required": true
+          },
+          {
+            "label": "Reference Implementation",
+            "artifact": "reference/reference_impl.py",
+            "required": true
+          }
+        ],
+        "renderOrder": [
+          "Run Input",
+          "Fixed Stage System Prompt",
+          "Review Result",
+          "Review Notes",
+          "Reference Implementation"
+        ]
+      },
+      "persistence": {
+        "selectedArtifactsRecord": "artifacts/handoff.plan.selected.json"
+      },
+      "routing": {
+        "onSuccess": "codegen"
+      }
+    },
+    "codegen": {
+      "session": "codegen",
+      "promptTemplate": "prompts/codegen.md",
+      "requiredOutputs": [
+        "generated/output.txt",
+        "artifacts/codegen-report.md"
+      ],
+      "clearOnEnter": [
+        "generated/output.txt",
+        "artifacts/codegen-report.md",
+        "artifacts/handoff.codegen.selected.json"
+      ],
+      "prototypeOutputs": [
+        "generated/output.txt",
+        "artifacts/codegen-report.md"
+      ],
+      "injection": {
+        "sections": [
+          {
+            "label": "Run Input",
+            "artifact": "artifacts/input.json",
+            "required": true
+          },
+          {
+            "label": "Fixed Stage System Prompt",
+            "promptTemplate": true,
+            "required": true
+          },
+          {
+            "label": "Plan Output",
+            "artifact": "artifacts/plan-output.md",
+            "required": true
+          },
+          {
+            "label": "Plan Summary",
+            "artifact": "artifacts/plan-summary.json",
+            "required": false
+          },
+          {
+            "label": "Stage Handoff",
+            "artifact": "artifacts/handoff.codegen.md",
+            "required": true
+          },
+          {
+            "label": "Workflow Rules",
+            "artifact": "rules/workflow-rules.md",
+            "required": false
+          }
+        ],
+        "renderOrder": [
+          "Run Input",
+          "Fixed Stage System Prompt",
+          "Plan Output",
+          "Plan Summary",
+          "Stage Handoff",
+          "Workflow Rules"
+        ]
+      },
+      "persistence": {
+        "selectedArtifactsRecord": "artifacts/handoff.codegen.selected.json"
+      },
+      "routing": {
+        "onSuccess": "correctness"
+      }
+    },
+    "codegen_feedback": {
+      "session": "codegen",
+      "promptTemplate": "prompts/codegen.md",
+      "requiredOutputs": [
+        "generated/output.txt",
+        "artifacts/codegen-report.md"
+      ],
+      "clearOnEnter": [
+        "generated/output.txt",
+        "artifacts/codegen-report.md",
+        "artifacts/handoff.codegen.selected.json"
+      ],
+      "prototypeOutputs": [
+        "generated/output.txt",
+        "artifacts/codegen-report.md"
+      ],
+      "continuationMessage": "Check failed. Continue fixing the same implementation.",
+      "injection": {
+        "sections": [
+          {
+            "label": "Run Input",
+            "artifact": "artifacts/input.json",
+            "required": true
+          },
+          {
+            "label": "Fixed Stage System Prompt",
+            "promptTemplate": true,
+            "required": true
+          },
+          {
+            "label": "Gate Result",
+            "artifact": "artifacts/correctness.json",
+            "required": true
+          },
+          {
+            "label": "Codegen Report",
+            "artifact": "artifacts/codegen-report.md",
+            "required": false
+          }
+        ],
+        "renderOrder": [
+          "Run Input",
+          "Fixed Stage System Prompt",
+          "Gate Result",
+          "Codegen Report"
+        ]
+      },
+      "persistence": {
+        "selectedArtifactsRecord": "artifacts/handoff.codegen.selected.json"
+      },
+      "routing": {
+        "onSuccess": "correctness"
+      }
+    },
+    "optimize": {
+      "session": "optimize",
+      "promptTemplate": "prompts/optimize.md",
+      "requiredOutputs": [
+        "artifacts/codegen-report.md"
+      ],
+      "clearOnEnter": [
+        "artifacts/handoff.optimize.selected.json"
+      ],
+      "prototypeOutputs": [
+        "artifacts/codegen-report.md"
+      ],
+      "injection": {
+        "sections": [
+          {
+            "label": "Run Input",
+            "artifact": "artifacts/input.json",
+            "required": true
+          },
+          {
+            "label": "Fixed Stage System Prompt",
+            "promptTemplate": true,
+            "required": true
+          },
+          {
+            "label": "Codegen Report",
+            "artifact": "artifacts/codegen-report.md",
+            "required": true
+          },
+          {
+            "label": "Workflow Rules",
+            "artifact": "rules/workflow-rules.md",
+            "required": false
+          }
+        ],
+        "renderOrder": [
+          "Run Input",
+          "Fixed Stage System Prompt",
+          "Codegen Report",
+          "Workflow Rules"
+        ]
+      },
+      "persistence": {
+        "selectedArtifactsRecord": "artifacts/handoff.optimize.selected.json"
+      },
+      "routing": {
+        "onSuccess": "perf"
+      }
+    },
+    "optimize_feedback": {
+      "session": "optimize",
+      "promptTemplate": "prompts/optimize.md",
+      "requiredOutputs": [
+        "artifacts/codegen-report.md"
+      ],
+      "clearOnEnter": [
+        "artifacts/handoff.optimize.selected.json"
+      ],
+      "prototypeOutputs": [
+        "artifacts/codegen-report.md"
+      ],
+      "continuationMessage": "Performance target failed. Continue optimizing the same implementation.",
+      "injection": {
+        "sections": [
+          {
+            "label": "Run Input",
+            "artifact": "artifacts/input.json",
+            "required": true
+          },
+          {
+            "label": "Fixed Stage System Prompt",
+            "promptTemplate": true,
+            "required": true
+          },
+          {
+            "label": "Gate Result",
+            "artifact": "artifacts/perf.json",
+            "required": true
+          },
+          {
+            "label": "Codegen Report",
+            "artifact": "artifacts/codegen-report.md",
+            "required": false
+          }
+        ],
+        "renderOrder": [
+          "Run Input",
+          "Fixed Stage System Prompt",
+          "Gate Result",
+          "Codegen Report"
+        ]
+      },
+      "persistence": {
+        "selectedArtifactsRecord": "artifacts/handoff.optimize.selected.json"
+      },
+      "routing": {
+        "onSuccess": "perf"
+      }
+    },
+    "review": {
+      "session": "review",
+      "promptTemplate": "prompts/review.md",
+      "requiredOutputs": [
+        "artifacts/review-notes.md",
+        "artifacts/review-result.json"
+      ],
+      "clearOnEnter": [
+        "artifacts/review-notes.md",
+        "artifacts/review-result.json",
+        "artifacts/handoff.review.selected.json"
+      ],
+      "prototypeOutputs": [
+        "artifacts/review-notes.md",
+        "artifacts/review-result.json"
+      ],
+      "injection": {
+        "sections": [
+          {
+            "label": "Run Input",
+            "artifact": "artifacts/input.json",
+            "required": true
+          },
+          {
+            "label": "Fixed Stage System Prompt",
+            "promptTemplate": true,
+            "required": true
+          },
+          {
+            "label": "Correctness Evidence",
+            "artifact": "artifacts/correctness.json",
+            "required": true
+          },
+          {
+            "label": "Performance Evidence",
+            "artifact": "artifacts/perf.json",
+            "required": true
+          },
+          {
+            "label": "Codegen Report",
+            "artifact": "artifacts/codegen-report.md",
+            "required": true
+          },
+          {
+            "label": "Review Rules",
+            "artifact": "rules/review-rules.md",
+            "required": false
+          }
+        ],
+        "renderOrder": [
+          "Run Input",
+          "Fixed Stage System Prompt",
+          "Correctness Evidence",
+          "Performance Evidence",
+          "Codegen Report",
+          "Review Rules"
+        ]
+      },
+      "persistence": {
+        "selectedArtifactsRecord": "artifacts/handoff.review.selected.json"
+      },
+      "routing": {
+        "onSuccess": "finalize",
+        "onFailure": "plan_feedback"
+      }
+    }
+  },
+  "gates": {
+    "correctness": {
+      "command": [
+        "bun",
+        "run",
+        "checks/correctness.ts",
+        "--run-dir",
+        "{{runDirectory}}"
+      ],
+      "resultArtifact": "artifacts/correctness.json",
+      "pass": "optimize",
+      "fail": "codegen_feedback",
+      "maxAttempts": 2
+    },
+    "perf": {
+      "command": [
+        "bun",
+        "run",
+        "checks/perf.ts",
+        "--run-dir",
+        "{{runDirectory}}"
+      ],
+      "resultArtifact": "artifacts/perf.json",
+      "pass": "review",
+      "fail": "optimize_feedback",
+      "maxAttempts": 2
+    },
+    "finalize": {
+      "command": [
+        "bun",
+        "run",
+        "checks/finalize.ts",
+        "--run-dir",
+        "{{runDirectory}}"
+      ],
+      "resultArtifact": "artifacts/finalize.json"
+    }
   }
 }
