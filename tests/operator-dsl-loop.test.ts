@@ -39,6 +39,17 @@ describe("operator-dsl-loop prototype runtime", () => {
 
     const state = JSON.parse(await readFile(join(runDirectory, "artifacts", "state.json"), "utf8")) as { readonly node: string; readonly status: string }
     const review = JSON.parse(await readFile(join(runDirectory, "artifacts", "review-result.json"), "utf8")) as { readonly decision: { readonly approved: boolean } }
+    const monitor = JSON.parse(await readFile(join(runDirectory, "artifacts", "workflow-monitor.snapshot.json"), "utf8")) as {
+      readonly workflow: {
+        readonly completedAt: string | null
+        readonly heartbeatAt: string
+        readonly startedAt: string
+        readonly status: string
+      }
+      readonly execution: { readonly currentNodeId: string | null }
+      readonly nodeStates: Record<string, { readonly status: string }>
+      readonly sessions: Record<string, { readonly id: string | null }>
+    }
     const prompt = await readFile(join(runDirectory, "artifacts", "prompts", "codegen.md"), "utf8")
     const feedbackPrompt = await readFile(join(runDirectory, "artifacts", "prompts", "codegen_feedback.md"), "utf8")
     const sessionEventLog = await readFile(join(runDirectory, "artifacts", "session-events.jsonl"), "utf8")
@@ -51,11 +62,19 @@ describe("operator-dsl-loop prototype runtime", () => {
     expect(sessionEventLog).toContain("session-turn")
     expect(debugGuide).toContain("--mode sessions")
     expect(debugGuide).toContain("--stage codegen")
+    expect(debugGuide).toContain("workflow-monitor")
     expect(await Bun.file(join(runDirectory, "sessions", "plan.json")).exists()).toBe(true)
     expect(await Bun.file(join(runDirectory, "sessions", "codegen.json")).exists()).toBe(true)
     expect(await Bun.file(join(runDirectory, "artifacts", "correctness.json")).exists()).toBe(true)
     expect(await Bun.file(join(runDirectory, "artifacts", "perf.json")).exists()).toBe(true)
     expect(await Bun.file(join(runDirectory, "artifacts", "finalize.json")).exists()).toBe(true)
+    expect(monitor.workflow.status).toBe("completed")
+    expect(monitor.workflow.startedAt).toBeTruthy()
+    expect(monitor.workflow.heartbeatAt).toBeTruthy()
+    expect(monitor.workflow.completedAt).toBeTruthy()
+    expect(monitor.execution.currentNodeId).toBe("finalize")
+    expect(monitor.nodeStates.review.status).toBe("approved")
+    expect(monitor.sessions.codegen.id).toBe("fake-codegen")
   })
 
   test("stage replay rewrites cleared stage outputs", async () => {

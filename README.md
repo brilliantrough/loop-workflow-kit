@@ -44,6 +44,10 @@ templates/
   typescript/
     gate-checker.ts
     prompt-assembler.ts
+workflow-monitor/
+  package.json
+  server/
+  src/
 workflows/
   operator-dsl-loop/
     workflow.yml
@@ -90,6 +94,21 @@ templates/production-adapters/opencode-http-session/
 
 That directory includes generic Python and TypeScript/Bun production runners, replay commands, HTTP/session helpers, server bootstrap, session persistence, attach-command generation, and runtime snippets so migration does not need to rediscover `opencode serve` interaction from scratch.
 
+The kit now also ships a reusable TypeScript workflow monitor frontend under:
+
+```text
+workflow-monitor/
+```
+
+Its contract boundary is file-based:
+
+- runners publish `artifacts/workflow-monitor.snapshot.json`
+- runners append `artifacts/workflow-monitor.events.jsonl`
+- the monitor server recursively scans a shared runs root and reads only per-run snapshot files
+- the React frontend reads only `/api/runs`, `/api/runs/stream`, `/api/snapshot?run=<id>`, `/api/stream?run=<id>`, and `/api/file/*`
+
+The live transport is SSE. The Bun server polls the file contract and pushes updates downstream; file preview stays read-only and limited to repo-local roots plus the shared runs root after real-path validation. The run library supports nested workflow roots, search/filter/sort, active-versus-stale detection, node durations, execution-path highlighting, follow mode, and enhanced artifact inspection.
+
 ## Prototype Runner
 
 This kit includes a local session-capable prototype runner so the packaged workflow has a concrete startup command:
@@ -112,6 +131,25 @@ bun run prototype:replay -- --workflow workflows/operator-dsl-loop/workflow.yml 
 Each run also writes `artifacts/prototype-debug-commands.txt`, which materializes the inspect, sessions, stage-replay, and gate-replay commands for that concrete run directory. This mirrors the production need for a stable observability surface even before a real engine transport exists.
 
 This repository is intentionally lightweight, but it now owns the prototype runtime skeleton and a copyable OpenCode production adapter skeleton. Target runtime repositories should replace environment-specific gates and domain paths, not reinvent session lifecycle, prompt assembly, replay, session observability, or artifact persistence.
+
+## Monitor UI
+
+Build and start the monitor against the repo-local `.runs` root:
+
+```bash
+cd workflow-monitor
+bun install
+bun run build
+bun run start
+```
+
+Optional: point it at another runs root and highlight one run:
+
+```bash
+bun run start -- --runs-root /abs/path/to/.runs --default-run /abs/path/to/.runs/operator-dsl-loop/<run-slug>
+```
+
+The same UI can watch the prototype runner in this repo or a production repository, as long as that runner writes the same snapshot contract.
 
 ## Python vs TypeScript/Bun
 

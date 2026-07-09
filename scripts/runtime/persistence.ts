@@ -1,4 +1,4 @@
-import { copyFile, mkdir, readFile, rm, writeFile } from "node:fs/promises"
+import { copyFile, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises"
 import { dirname, join, resolve } from "node:path"
 
 export async function seedRunDirectory(input: {
@@ -36,7 +36,9 @@ export async function readJsonObject<T>(path: string): Promise<T> {
 
 export async function writeJson(path: string, value: unknown): Promise<void> {
   await mkdir(dirname(path), { recursive: true })
-  await writeFile(path, JSON.stringify(value, null, 2))
+  const tempPath = `${path}.tmp`
+  await writeFile(tempPath, JSON.stringify(value, null, 2))
+  await rename(tempPath, path)
 }
 
 export async function writeText(path: string, text: string): Promise<void> {

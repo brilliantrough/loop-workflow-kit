@@ -66,6 +66,28 @@ On startup, the runner also prints the concrete inspect/sessions/debug-guide com
 <run-dir>/artifacts/prototype-debug-commands.txt
 ```
 
+It also emits a decoupled monitor snapshot contract:
+
+```text
+<run-dir>/artifacts/workflow-monitor.snapshot.json
+<run-dir>/artifacts/workflow-monitor.events.jsonl
+```
+
+The repo-local TypeScript monitor package can render that run directory without importing prototype runner code:
+
+```bash
+cd workflow-monitor
+bun install
+bun run build
+bun run start
+```
+
+Optional: point it at another runs root and highlight one run:
+
+```bash
+bun run start -- --runs-root /abs/path/to/.runs --default-run /abs/path/to/.runs/operator-dsl-loop/<runId>
+```
+
 Additional debug entrypoints:
 
 ```bash

@@ -14,6 +14,10 @@ export type SessionRecord = {
 }
 
 export async function executeSessionStage(input: {
+  readonly hooks?: {
+    readonly onStageCompleted?: (payload: { readonly sessionRecord: SessionRecord; readonly stageId: string }) => Promise<void> | void
+    readonly onStageStarting?: (payload: { readonly attempt: number; readonly sessionRecord: SessionRecord; readonly stageId: string }) => Promise<void> | void
+  }
   readonly manifest: WorkflowManifest
   readonly runDirectory: string
   readonly stageId: string
@@ -25,6 +29,11 @@ export async function executeSessionStage(input: {
     engine: input.manifest.sessions[stage.session]?.engine ?? "fake",
     runDirectory: input.runDirectory,
     sessionName: stage.session,
+  })
+  await input.hooks?.onStageStarting?.({
+    attempt: sessionRecord.promptCount + 1,
+    sessionRecord,
+    stageId: input.stageId,
   })
   const prompt = await assemblePrompt({
     runDirectory: input.runDirectory,
@@ -49,6 +58,10 @@ export async function executeSessionStage(input: {
     session: stage.session,
     stage: input.stageId,
     turn: updated.promptCount,
+  })
+  await input.hooks?.onStageCompleted?.({
+    sessionRecord: updated,
+    stageId: input.stageId,
   })
   return updated
 }

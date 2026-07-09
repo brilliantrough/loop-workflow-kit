@@ -1,0 +1,94 @@
+{
+  "version": 1,
+  "workflow": {
+    "adapter": "fixture",
+    "completedAt": null,
+    "entryNodeId": "plan",
+    "metadata": {
+      "subject": "fixture/operator",
+      "backend": "fixture"
+    },
+    "name": "demo-workflow",
+    "runDirectory": "workflow-monitor/tests/fixtures/runs/demo-workflow/demo-run",
+    "startedAt": "2026-07-10T01:00:00.000Z",
+    "status": "running",
+    "transport": "fixture",
+    "updatedAt": "2026-07-10T01:01:00.000Z",
+    "version": "fixture-v1",
+    "workflowPath": "workflow-monitor/tests/fixtures/workflow.yml"
+  },
+  "runInput": {
+    "backend": "fixture",
+    "operatorDir": "fixture/operator"
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "plan",
+        "kind": "agent",
+        "label": "plan",
+        "next": "finalize",
+        "requiredOutputs": []
+      },
+      {
+        "command": ["echo", "{{runDirectory}}"],
+        "id": "finalize",
+        "kind": "gate",
+        "label": "finalize",
+        "resultArtifact": "workflow-monitor/tests/fixtures/runs/demo-workflow/demo-run/artifacts/report.md"
+      }
+    ],
+    "edges": [
+      {
+        "id": "plan--next--finalize",
+        "label": "next",
+        "route": "next",
+        "source": "plan",
+        "target": "finalize"
+      }
+    ]
+  },
+  "execution": {
+    "currentNodeId": "finalize",
+    "currentNodeKind": "gate",
+    "detail": "finalize running",
+    "status": "running",
+    "updatedAt": "2026-07-10T01:01:00.000Z"
+  },
+  "observer": {},
+  "sessions": {},
+  "nodeStates": {
+    "plan": {
+      "attempts": 1,
+      "completedAt": "2026-07-10T01:00:30.000Z",
+      "current": false,
+      "detail": "required outputs ready",
+      "routeOutcome": "ready",
+      "startedAt": "2026-07-10T01:00:00.000Z",
+      "status": "completed",
+      "updatedAt": "2026-07-10T01:00:30.000Z"
+    },
+    "finalize": {
+      "attempts": 1,
+      "completedAt": null,
+      "current": true,
+      "detail": "running",
+      "routeOutcome": null,
+      "startedAt": "2026-07-10T01:00:30.000Z",
+      "status": "running",
+      "updatedAt": "2026-07-10T01:01:00.000Z"
+    }
+  },
+  "recentEvents": [
+    {
+      "artifactPath": null,
+      "detail": "attempt=1",
+      "exitCode": null,
+      "nodeId": "finalize",
+      "outcome": null,
+      "phase": "gate_started",
+      "sequence": 1,
+      "timestamp": "2026-07-10T01:00:30.000Z"
+    }
+  ]
+}
